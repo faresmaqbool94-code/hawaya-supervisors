@@ -380,6 +380,7 @@
       compressedImageBase64 = await compressImage(file, 800, 0.7);
       document.getElementById('imagePreview').src = 'data:image/jpeg;base64,' + compressedImageBase64;
       wrap.classList.remove('hidden');
+      alert('✅ تم تحميل الصورة بنجاح - الحجم: ' + compressedImageBase64.length + ' حرف');
     } catch (err) {
       errorMsg.textContent = 'تعذر تحميل الصورة، يمكنك المتابعة بدونها';
       compressedImageBase64 = null;
@@ -511,7 +512,7 @@
       const dataUrl = canvas.toDataURL('image/png');
       lastBadgeDataUrl = dataUrl;
 
-      await fetch(APPS_SCRIPT_URL, {
+      const res = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
@@ -520,8 +521,15 @@
           imageBase64: dataUrl.split(',')[1]
         })
       });
+
+      const result = await res.json();
+      if (!result.success) {
+        console.warn('saveBadge error:', result.error);
+        alert('تنبيه - فشل حفظ البطاقة في Drive:\n' + result.error);
+      }
     } catch (err) {
-      // فشل الحفظ التلقائي لا يوقف تجربة المشرف، زر التحميل يبقى متاح كخيار بديل
+      console.warn('saveBadgeToDrive catch:', err.message);
+      alert('تنبيه - خطأ في تحويل البطاقة لصورة:\n' + err.message);
     }
   }
 
