@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>تسجيل طالب - هواية الصيفي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --blue:#2F6FBF;
+    --indigo:#352868;
+    --violet:#7C5BA6;
+    --pink:#F178A8;
+    --sun:#FFC83C;
+    --bg:#F6F4FB;
+    --card:#FFFFFF;
+    --text:#2B2640;
+    --text-muted:#79738F;
+    --error:#D1485B;
+    --radius:22px;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 88% -6%, rgba(255,200,60,.22), transparent 38%),
+      radial-gradient(circle at -10% 102%, rgba(124,91,166,.16), transparent 42%),
+      var(--bg);
+    font-family:'Almarai', sans-serif;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px 16px;
+  }
+
+  .page{width:100%;max-width:440px;}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:30px 26px 34px;
+    box-shadow:0 18px 50px -12px rgba(53,40,104,.22);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    top:-40px; left:-40px;
+    width:120px; height:120px;
+    background:radial-gradient(circle, rgba(47,111,191,.10), transparent 70%);
+  }
+
+  .logo{
+    display:block;
+    width:100%;
+    max-width:230px;
+    margin:0 auto 18px;
+  }
+
+  h1{
+    font-family:'Baloo Bhaijaan 2', sans-serif;
+    font-weight:700;
+    font-size:1.5rem;
+    color:var(--indigo);
+    text-align:center;
+    margin:0 0 6px;
+  }
+
+  .subtitle{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:.92rem;
+    margin:0 0 24px;
+  }
+
+  label{
+    display:block;
+    font-size:.88rem;
+    font-weight:700;
+    color:var(--indigo);
+    margin-bottom:16px;
+  }
+
+  input, select{
+    width:100%;
+    margin-top:8px;
+    padding:13px 14px;
+    border-radius:14px;
+    border:2px solid #E7E2F2;
+    background:#FBFAFD;
+    font-family:'Almarai', sans-serif;
+    font-size:1rem;
+    color:var(--text);
+    outline:none;
+    transition:border-color .15s ease;
+    appearance:none;
+  }
+
+  input:focus, select:focus{
+    border-color:var(--blue);
+  }
+
+  select{
+    direction:rtl;
+  }
+
+  button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:999px;
+    font-family:'Baloo Bhaijaan 2', sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    color:#fff;
+    cursor:pointer;
+    background:linear-gradient(95deg, var(--blue), var(--violet));
+    box-shadow:0 10px 24px -8px rgba(47,111,191,.55);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+
+  button:active{transform:translateY(1px) scale(.99);}
+
+  button:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+  }
+
+  .error{
+    color:var(--error);
+    font-size:.85rem;
+    text-align:center;
+    min-height:1.2em;
+    margin:14px 0 0;
+    font-weight:700;
+  }
+
+  .hidden{display:none;}
+
+  /* ===== شاشة النجاح ===== */
+  .sun-icon{
+    font-size:2.1rem;
+    text-align:center;
+    margin-bottom:4px;
+    animation:pop .5s ease;
+  }
+
+  @keyframes pop{
+    0%{transform:scale(0) rotate(-15deg); opacity:0;}
+    65%{transform:scale(1.15) rotate(6deg); opacity:1;}
+    100%{transform:scale(1) rotate(0);}
+  }
+
+  #successName{font-weight:700; color:var(--text);}
+
+  .badge{
+    margin:18px 0 22px;
+    border-radius:18px;
+    padding:18px 20px;
+    background:linear-gradient(160deg, #FFF, #FCEEF4);
+    border:2px dashed var(--pink);
+    animation:rise .45s ease;
+  }
+
+  @keyframes rise{
+    0%{transform:translateY(14px); opacity:0;}
+    100%{transform:translateY(0); opacity:1;}
+  }
+
+  .badge-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:8px 0;
+    border-bottom:1px solid rgba(124,91,166,.15);
+  }
+
+  .badge-row:last-of-type{border-bottom:none;}
+
+  .badge-label{
+    font-size:.85rem;
+    color:var(--text-muted);
+    font-weight:700;
+  }
+
+  .badge-value{
+    font-family:'Baloo Bhaijaan 2', sans-serif;
+    font-size:1.25rem;
+    font-weight:700;
+    color:var(--indigo);
+    letter-spacing:1px;
+  }
+
+  .qr-box{
+    display:flex;
+    justify-content:center;
+    margin-top:14px;
+    padding-top:14px;
+  }
+
+  .qr-box img, .qr-box canvas{
+    border-radius:10px;
+  }
+
+  .qr-hint{
+    text-align:center;
+    font-size:.78rem;
+    color:var(--text-muted);
+    margin:8px 0 0;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="card">
+    <img src="logo.jpg" alt="هواية الصيفي" class="logo">
+
+    <!-- ===== فورم التسجيل ===== -->
+    <div id="formView">
+      <h1>تسجيل طالب جديد</h1>
+      <p class="subtitle">سجّل بيانات الطالب وسلّمه بطاقته</p>
+
+      <form id="registerForm">
+        <label>
+          اسم الطالب
+          <input type="text" id="studentName" placeholder="اكتب الاسم الكامل" required>
+        </label>
+
+        <label>
+          المرحلة الدراسية
+          <select id="studentStage" required>
+            <option value="" disabled selected>اختر المرحلة</option>
+            <optgroup label="ابتدائي">
+              <option>الأول ابتدائي</option>
+              <option>الثاني ابتدائي</option>
+              <option>الثالث ابتدائي</option>
+              <option>الرابع ابتدائي</option>
+              <option>الخامس ابتدائي</option>
+              <option>السادس ابتدائي</option>
+            </optgroup>
+            <optgroup label="متوسط">
+              <option>الأول متوسط</option>
+              <option>الثاني متوسط</option>
+              <option>الثالث متوسط</option>
+            </optgroup>
+            <optgroup label="ثانوي">
+              <option>الأول ثانوي</option>
+              <option>الثاني ثانوي</option>
+              <option>الثالث ثانوي</option>
+            </optgroup>
+          </select>
+        </label>
+
+        <button type="submit" id="submitBtn">تسجيل الطالب</button>
+        <p class="error" id="errorMsg"></p>
+      </form>
+    </div>
+
+    <!-- ===== شاشة النجاح ===== -->
+    <div id="successView" class="hidden">
+      <div class="sun-icon">☀️</div>
+      <h1>تم تسجيل الطالب</h1>
+      <p class="subtitle">باسم <span id="successName"></span></p>
+
+      <div class="badge">
+        <div class="badge-row">
+          <span class="badge-label">رقم الطالب</span>
+          <span class="badge-value" id="badgeId"></span>
+        </div>
+        <div class="badge-row">
+          <span class="badge-label">الرقم السري</span>
+          <span class="badge-value" id="badgePw"></span>
+        </div>
+        <div class="qr-box" id="qrcode"></div>
+      </div>
+      <p class="qr-hint">صوّر الباركود بكاميرا الجوال لتسجيل الدخول مباشرة</p>
+
+      <button id="resetBtn">تسجيل طالب آخر</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ⚠️ عدّل هذا الرابط بعد نشر Apps Script كـ Web App
+  const APPS_SCRIPT_URL = 'ضع_رابط_Web_App_هنا';
+
+  // ⚠️ عدّل هذا الرابط لاحقًا برابط تطبيق الطالب (سهل التعديل، سطر واحد فقط)
+  const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
+
+  const form = document.getElementById('registerForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const formView = document.getElementById('formView');
+  const successView = document.getElementById('successView');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.textContent = '';
+
+    const name = document.getElementById('studentName').value.trim();
+    const stage = document.getElementById('studentStage').value;
+
+    if (!name || !stage) {
+      errorMsg.textContent = 'الاسم والمرحلة مطلوبان';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'جاري التسجيل...';
+
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'registerStudent', name, stage })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        errorMsg.textContent = data.error || 'حدث خطأ، حاول مرة أخرى';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تسجيل الطالب';
+        return;
+      }
+
+      showSuccess(data);
+    } catch (err) {
+      errorMsg.textContent = 'تعذر الاتصال بالخادم، تحقق من الإنترنت';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'تسجيل الطالب';
+    }
+  });
+
+  function showSuccess(data) {
+    document.getElementById('successName').textContent = data.name;
+    document.getElementById('badgeId').textContent = data.id;
+    document.getElementById('badgePw').textContent = data.password;
+
+    const qrContainer = document.getElementById('qrcode');
+    qrContainer.innerHTML = '';
+
+    const loginLink = `${STUDENT_APP_BASE_URL}?id=${data.id}&pw=${data.password}`;
+
+    new QRCode(qrContainer, {
+      text: loginLink,
+      width: 140,
+      height: 140,
+      colorDark: '#352868',
+      colorLight: '#ffffff'
+    });
+
+    formView.classList.add('hidden');
+    successView.classList.remove('hidden');
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    form.reset();
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'تسجيل الطالب';
+    successView.classList.add('hidden');
+    formView.classList.remove('hidden');
+  });
+</script>
+
+</body>
+</html>
