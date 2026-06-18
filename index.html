@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --blue:#2F6FBF;
@@ -64,6 +65,26 @@
     width:100%;
     max-width:230px;
     margin:0 auto 18px;
+  }
+
+  .welcome-pill{
+    display:block;
+    width:fit-content;
+    margin:0 auto 16px;
+    padding:7px 18px;
+    border-radius:999px;
+    background:linear-gradient(95deg, var(--pink), var(--violet));
+    color:#fff;
+    font-family:'Baloo Bhaijaan 2', sans-serif;
+    font-weight:700;
+    font-size:.82rem;
+  }
+
+  .btn-secondary{
+    background:#F3F0FA;
+    color:var(--indigo);
+    box-shadow:none;
+    margin-top:10px;
   }
 
   h1{
@@ -145,6 +166,26 @@
   }
 
   .hidden{display:none;}
+
+  .image-preview{
+    display:block;
+    width:96px;
+    height:96px;
+    object-fit:cover;
+    border-radius:16px;
+    margin:10px auto 0;
+    border:2px solid #E7E2F2;
+  }
+
+  .badge-photo{
+    display:block;
+    width:76px;
+    height:76px;
+    object-fit:cover;
+    border-radius:50%;
+    margin:0 auto 14px;
+    border:3px solid var(--pink);
+  }
 
   /* ===== شاشة النجاح ===== */
   .sun-icon{
@@ -231,6 +272,7 @@
 
     <!-- ===== فورم التسجيل ===== -->
     <div id="formView">
+      <div class="welcome-pill">أهلًا بك، يا مشرف هواية ✨</div>
       <h1>تسجيل طالب جديد</h1>
       <p class="subtitle">سجّل بيانات الطالب وسلّمه بطاقته</p>
 
@@ -265,6 +307,14 @@
           </select>
         </label>
 
+        <label>
+          صورة الطالب (اختياري)
+          <input type="file" id="studentImage" accept="image/*" capture="environment">
+        </label>
+        <div id="imagePreviewWrap" class="hidden">
+          <img id="imagePreview" class="image-preview" alt="معاينة الصورة">
+        </div>
+
         <button type="submit" id="submitBtn">تسجيل الطالب</button>
         <p class="error" id="errorMsg"></p>
       </form>
@@ -272,31 +322,35 @@
 
     <!-- ===== شاشة النجاح ===== -->
     <div id="successView" class="hidden">
-      <div class="sun-icon">☀️</div>
-      <h1>تم تسجيل الطالب</h1>
-      <p class="subtitle">باسم <span id="successName"></span></p>
+      <div id="badgeCard">
+        <div class="sun-icon">☀️</div>
+        <h1>تم تسجيل الطالب</h1>
+        <p class="subtitle">باسم <span id="successName"></span></p>
 
-      <div class="badge">
-        <div class="badge-row">
-          <span class="badge-label">رقم الطالب</span>
-          <span class="badge-value" id="badgeId"></span>
+        <div class="badge">
+          <img id="badgePhoto" class="badge-photo hidden" alt="صورة الطالب">
+          <div class="badge-row">
+            <span class="badge-label">رقم الطالب</span>
+            <span class="badge-value" id="badgeId"></span>
+          </div>
+          <div class="badge-row">
+            <span class="badge-label">الرقم السري</span>
+            <span class="badge-value" id="badgePw"></span>
+          </div>
+          <div class="qr-box" id="qrcode"></div>
         </div>
-        <div class="badge-row">
-          <span class="badge-label">الرقم السري</span>
-          <span class="badge-value" id="badgePw"></span>
-        </div>
-        <div class="qr-box" id="qrcode"></div>
       </div>
       <p class="qr-hint">صوّر الباركود بكاميرا الجوال لتسجيل الدخول مباشرة</p>
 
-      <button id="resetBtn">تسجيل طالب آخر</button>
+      <button id="downloadBtn" type="button">تحميل البطاقة</button>
+      <button id="resetBtn" type="button" class="btn-secondary">تسجيل طالب آخر</button>
     </div>
   </div>
 </div>
 
 <script>
   // ⚠️ عدّل هذا الرابط بعد نشر Apps Script كـ Web App
-  const APPS_SCRIPT_URL = 'ضع_رابط_Web_App_هنا';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2lntDOpiSFWUarJLWxnkeP__QI6e9Uemd8BQPnx6Y7kyd-VAE30VXIZ1TI9E3gyQffw/exec';
 
   // ⚠️ عدّل هذا الرابط لاحقًا برابط تطبيق الطالب (سهل التعديل، سطر واحد فقط)
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
@@ -306,6 +360,60 @@
   const errorMsg = document.getElementById('errorMsg');
   const formView = document.getElementById('formView');
   const successView = document.getElementById('successView');
+
+  let compressedImageBase64 = null;
+  let currentStudentId = null;
+  let currentStudentName = null;
+  let lastBadgeDataUrl = null;
+
+  document.getElementById('studentImage').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const wrap = document.getElementById('imagePreviewWrap');
+
+    if (!file) {
+      compressedImageBase64 = null;
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    try {
+      compressedImageBase64 = await compressImage(file, 800, 0.7);
+      document.getElementById('imagePreview').src = 'data:image/jpeg;base64,' + compressedImageBase64;
+      wrap.classList.remove('hidden');
+    } catch (err) {
+      errorMsg.textContent = 'تعذر تحميل الصورة، يمكنك المتابعة بدونها';
+      compressedImageBase64 = null;
+      wrap.classList.add('hidden');
+    }
+  });
+
+  function compressImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else if (height >= width && height > maxDim) {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+        };
+        img.onerror = reject;
+        img.src = ev.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -322,11 +430,17 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'جاري التسجيل...';
 
+    const payload = { action: 'registerStudent', name, stage };
+    if (compressedImageBase64) {
+      payload.imageBase64 = compressedImageBase64;
+      payload.imageMimeType = 'image/jpeg';
+    }
+
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'registerStudent', name, stage })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -347,9 +461,21 @@
   });
 
   function showSuccess(data) {
+    currentStudentId = data.id;
+    currentStudentName = data.name;
+    lastBadgeDataUrl = null;
+
     document.getElementById('successName').textContent = data.name;
     document.getElementById('badgeId').textContent = data.id;
     document.getElementById('badgePw').textContent = data.password;
+
+    const badgePhoto = document.getElementById('badgePhoto');
+    if (data.imageUrl) {
+      badgePhoto.src = data.imageUrl;
+      badgePhoto.classList.remove('hidden');
+    } else {
+      badgePhoto.classList.add('hidden');
+    }
 
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
@@ -366,10 +492,58 @@
 
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
+
+    // حفظ نسخة من البطاقة بمجلد Drive تلقائيًا بالخلفية (لا يوقف المشرف ولا يظهر له تنبيه)
+    setTimeout(saveBadgeToDrive, 250);
   }
+
+  async function renderBadgeCanvas() {
+    return html2canvas(document.getElementById('badgeCard'), {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true
+    });
+  }
+
+  async function saveBadgeToDrive() {
+    try {
+      const canvas = await renderBadgeCanvas();
+      const dataUrl = canvas.toDataURL('image/png');
+      lastBadgeDataUrl = dataUrl;
+
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'saveBadge',
+          id: currentStudentId,
+          imageBase64: dataUrl.split(',')[1]
+        })
+      });
+    } catch (err) {
+      // فشل الحفظ التلقائي لا يوقف تجربة المشرف، زر التحميل يبقى متاح كخيار بديل
+    }
+  }
+
+  document.getElementById('downloadBtn').addEventListener('click', async () => {
+    let dataUrl = lastBadgeDataUrl;
+    if (!dataUrl) {
+      const canvas = await renderBadgeCanvas();
+      dataUrl = canvas.toDataURL('image/png');
+    }
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `بطاقة_${currentStudentName || 'طالب'}.png`;
+    link.click();
+  });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     form.reset();
+    compressedImageBase64 = null;
+    currentStudentId = null;
+    currentStudentName = null;
+    lastBadgeDataUrl = null;
+    document.getElementById('imagePreviewWrap').classList.add('hidden');
     submitBtn.disabled = false;
     submitBtn.textContent = 'تسجيل الطالب';
     successView.classList.add('hidden');
