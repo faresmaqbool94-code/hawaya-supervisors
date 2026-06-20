@@ -342,30 +342,47 @@
     badgeStatus.textContent = '⏳ جاري حفظ نسخة البطاقة، لحظات...';
     badgeStatus.style.display = 'block';
 
-    // ننتظر تحميل الصورة والخطوط فعليًا قبل التصوير، لتفادي بطاقة باهتة/ناقصة
+    // ننتظر تحميل الصورة والخطوط فعليًا قبل التصوير، بحدود زمنية تمنع التعليق إلى الأبد
     await waitForImageLoad(badgePhoto);
     if (document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch (_) { /* تجاهل */ }
+      try { await withTimeout(document.fonts.ready, 1500, 'فونت'); } catch (_) { /* تجاهل، لسنا بحاجة لها للاستمرار */ }
     }
 
-    await saveBadge().then((result) => {
-      if (result.ok) {
-        badgeStatus.style.display = 'none';
-      } else {
-        badgeStatus.style.color = 'var(--error)';
-        badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + result.error;
-        badgeStatus.style.display = 'block';
-      }
-    });
+    let result;
+    try {
+      result = await withTimeout(saveBadge(), 15000, 'انتهت المهلة (15 ثانية) — تحقق من الاتصال بالإنترنت وحاول مجددًا');
+    } catch (timeoutErr) {
+      result = { ok: false, error: timeoutErr.message };
+    }
+
+    if (result.ok) {
+      badgeStatus.style.display = 'none';
+    } else {
+      badgeStatus.style.color = 'var(--error)';
+      badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + result.error;
+      badgeStatus.style.display = 'block';
+    }
 
     downloadBtn.disabled = false; resetBtn.disabled = false;
+  }
+
+  /** يحوّل أي Promise معلّق إلى خطأ صريح بعد مهلة معينة، بدل التعليق إلى الأبد */
+  function withTimeout(promise, ms, timeoutMessage) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+      promise.then(
+        (val) => { clearTimeout(timer); resolve(val); },
+        (err) => { clearTimeout(timer); reject(err); }
+      );
+    });
   }
 
   async function renderBadgeCanvas() {
     const badgeCard = document.getElementById('badgeCard');
     badgeCard.classList.add('no-animate');
-    // نعطي المتصفح فرصة يعيد رسم العناصر بدون الأنيميشن قبل التصوير
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // ملاحظة: استخدمنا setTimeout بدل requestAnimationFrame لأن rAF يتوقف كليًا
+    // لو الصفحة صارت بالخلفية (قفل شاشة/تبديل تطبيق) على الجوال، فيعلّق العملية للأبد
+    await new Promise((resolve) => setTimeout(resolve, 80));
     const canvas = await html2canvas(badgeCard, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
     badgeCard.classList.remove('no-animate');
     return canvas;
