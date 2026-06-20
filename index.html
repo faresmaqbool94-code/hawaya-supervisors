@@ -23,9 +23,7 @@
     --error:#D1485B;
     --radius:22px;
   }
-
   *{box-sizing:border-box;}
-
   body{
     margin:0;
     min-height:100vh;
@@ -40,9 +38,7 @@
     justify-content:center;
     padding:28px 16px;
   }
-
   .page{width:100%;max-width:440px;}
-
   .card{
     background:var(--card);
     border-radius:var(--radius);
@@ -51,262 +47,85 @@
     position:relative;
     overflow:hidden;
   }
-
-  .card::before{
-    content:"";
-    position:absolute;
-    top:-40px; left:-40px;
-    width:120px; height:120px;
-    background:radial-gradient(circle, rgba(47,111,191,.10), transparent 70%);
-  }
-
-  .logo{
-    display:block;
-    width:100%;
-    max-width:230px;
-    margin:0 auto 18px;
-  }
-
+  .logo{display:block;width:100%;max-width:230px;margin:0 auto 18px;}
   .welcome-pill{
-    display:block;
-    width:fit-content;
-    margin:0 auto 16px;
-    padding:7px 18px;
-    border-radius:999px;
+    display:block;width:fit-content;margin:0 auto 16px;
+    padding:7px 18px;border-radius:999px;
     background:linear-gradient(95deg, var(--pink), var(--violet));
-    color:#fff;
-    font-family:'Baloo Bhaijaan 2', sans-serif;
-    font-weight:700;
-    font-size:.82rem;
+    color:#fff;font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:.82rem;
   }
-
-  .btn-secondary{
-    background:#F3F0FA;
-    color:var(--indigo);
-    box-shadow:none;
-    margin-top:10px;
-  }
-
-  h1{
-    font-family:'Baloo Bhaijaan 2', sans-serif;
-    font-weight:700;
-    font-size:1.5rem;
-    color:var(--indigo);
-    text-align:center;
-    margin:0 0 6px;
-  }
-
-  .subtitle{
-    text-align:center;
-    color:var(--text-muted);
-    font-size:.92rem;
-    margin:0 0 24px;
-  }
-
-  label{
-    display:block;
-    font-size:.88rem;
-    font-weight:700;
-    color:var(--indigo);
-    margin-bottom:16px;
-  }
-
+  .btn-secondary{background:#F3F0FA;color:var(--indigo);box-shadow:none;margin-top:10px;}
+  h1{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.5rem;color:var(--indigo);text-align:center;margin:0 0 6px;}
+  .subtitle{text-align:center;color:var(--text-muted);font-size:.92rem;margin:0 0 24px;}
+  label{display:block;font-size:.88rem;font-weight:700;color:var(--indigo);margin-bottom:16px;}
   input, select{
-    width:100%;
-    margin-top:8px;
-    padding:13px 14px;
-    border-radius:14px;
-    border:2px solid #E7E2F2;
-    background:#FBFAFD;
-    font-family:'Almarai', sans-serif;
-    font-size:1rem;
-    color:var(--text);
-    outline:none;
-    transition:border-color .15s ease;
-    appearance:none;
+    width:100%;margin-top:8px;padding:13px 14px;border-radius:14px;
+    border:2px solid #E7E2F2;background:#FBFAFD;
+    font-family:'Almarai', sans-serif;font-size:1rem;color:var(--text);
+    outline:none;transition:border-color .15s ease;appearance:none;
   }
-
-  input:focus, select:focus{
-    border-color:var(--blue);
-  }
-
-  select{
-    direction:rtl;
-  }
-
+  input:focus, select:focus{border-color:var(--blue);}
+  select{direction:rtl;}
   button{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:999px;
-    font-family:'Baloo Bhaijaan 2', sans-serif;
-    font-weight:700;
-    font-size:1.05rem;
-    color:#fff;
-    cursor:pointer;
+    width:100%;padding:15px;border:none;border-radius:999px;
+    font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.05rem;
+    color:#fff;cursor:pointer;
     background:linear-gradient(95deg, var(--blue), var(--violet));
     box-shadow:0 10px 24px -8px rgba(47,111,191,.55);
     transition:transform .12s ease, box-shadow .12s ease;
   }
-
   button:active{transform:translateY(1px) scale(.99);}
-
-  button:disabled{
-    opacity:.65;
-    cursor:not-allowed;
-  }
-
-  .error{
-    color:var(--error);
-    font-size:.85rem;
-    text-align:center;
-    min-height:1.2em;
-    margin:14px 0 0;
-    font-weight:700;
-  }
-
+  button:disabled{opacity:.65;cursor:not-allowed;}
+  .error{color:var(--error);font-size:.85rem;text-align:center;min-height:1.2em;margin:14px 0 0;font-weight:700;}
   .hidden{display:none;}
-
-  .image-preview{
-    display:block;
-    width:96px;
-    height:96px;
-    object-fit:cover;
-    border-radius:16px;
-    margin:10px auto 0;
-    border:2px solid #E7E2F2;
-  }
-
-  .badge-photo{
-    display:block;
-    width:76px;
-    height:76px;
-    object-fit:cover;
-    border-radius:50%;
-    margin:0 auto 14px;
-    border:3px solid var(--pink);
-  }
-
-  /* ===== شاشة النجاح ===== */
-  .sun-icon{
-    font-size:2.1rem;
-    text-align:center;
-    margin-bottom:4px;
-    animation:pop .5s ease;
-  }
-
-  @keyframes pop{
-    0%{transform:scale(0) rotate(-15deg); opacity:0;}
-    65%{transform:scale(1.15) rotate(6deg); opacity:1;}
-    100%{transform:scale(1) rotate(0);}
-  }
-
-  #successName{font-weight:700; color:var(--text);}
-
+  .image-preview{display:block;width:96px;height:96px;object-fit:cover;border-radius:16px;margin:10px auto 0;border:2px solid #E7E2F2;}
+  .badge-photo{display:block;width:76px;height:76px;object-fit:cover;border-radius:50%;margin:0 auto 14px;border:3px solid var(--pink);}
+  .sun-icon{font-size:2.1rem;text-align:center;margin-bottom:4px;animation:pop .5s ease;}
+  @keyframes pop{0%{transform:scale(0) rotate(-15deg);opacity:0;}65%{transform:scale(1.15) rotate(6deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+  #successName{font-weight:700;color:var(--text);}
   .badge{
-    margin:18px 0 22px;
-    border-radius:18px;
-    padding:18px 20px;
-    background:linear-gradient(160deg, #FFF, #FCEEF4);
-    border:2px dashed var(--pink);
+    margin:18px 0 22px;border-radius:18px;padding:18px 20px;
+    background:linear-gradient(160deg, #FFF, #FCEEF4);border:2px dashed var(--pink);
     animation:rise .45s ease;
   }
-
-  @keyframes rise{
-    0%{transform:translateY(14px); opacity:0;}
-    100%{transform:translateY(0); opacity:1;}
-  }
-
-  .badge-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:8px 0;
-    border-bottom:1px solid rgba(124,91,166,.15);
-  }
-
+  @keyframes rise{0%{transform:translateY(14px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
+  .badge-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(124,91,166,.15);}
   .badge-row:last-of-type{border-bottom:none;}
-
-  .badge-label{
-    font-size:.85rem;
-    color:var(--text-muted);
-    font-weight:700;
-  }
-
-  .badge-value{
-    font-family:'Baloo Bhaijaan 2', sans-serif;
-    font-size:1.25rem;
-    font-weight:700;
-    color:var(--indigo);
-    letter-spacing:1px;
-  }
-
-  .qr-box{
-    display:flex;
-    justify-content:center;
-    margin-top:14px;
-    padding-top:14px;
-  }
-
-  .qr-box img, .qr-box canvas{
-    border-radius:10px;
-  }
-
-  .qr-hint{
-    text-align:center;
-    font-size:.78rem;
-    color:var(--text-muted);
-    margin:8px 0 0;
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{animation:none !important; transition:none !important;}
-  }
+  .badge-label{font-size:.85rem;color:var(--text-muted);font-weight:700;}
+  .badge-value{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:1.25rem;font-weight:700;color:var(--indigo);letter-spacing:1px;}
+  .qr-box{display:flex;justify-content:center;margin-top:14px;padding-top:14px;}
+  .qr-box img, .qr-box canvas{border-radius:10px;}
+  .qr-hint{text-align:center;font-size:.78rem;color:var(--text-muted);margin:8px 0 0;}
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
 </head>
 <body>
-
 <div class="page">
   <div class="card">
-    <img src="logo.jpg" alt="هواية الصيفي" class="logo">
+    <div class="welcome-pill">أهلًا بك، يا مشرف هواية ✨</div>
 
-    <!-- ===== فورم التسجيل ===== -->
     <div id="formView">
-      <div class="welcome-pill">أهلًا بك، يا مشرف هواية ✨</div>
       <h1>تسجيل طالب جديد</h1>
       <p class="subtitle">سجّل بيانات الطالب وسلّمه بطاقته</p>
-
       <form id="registerForm">
-        <label>
-          اسم الطالب
-          <input type="text" id="studentName" placeholder="اكتب الاسم الكامل" required>
-        </label>
-
+        <label>اسم الطالب<input type="text" id="studentName" placeholder="اكتب الاسم الكامل" required></label>
         <label>
           المرحلة الدراسية
           <select id="studentStage" required>
             <option value="" disabled selected>اختر المرحلة</option>
             <optgroup label="ابتدائي">
-              <option>الأول ابتدائي</option>
-              <option>الثاني ابتدائي</option>
-              <option>الثالث ابتدائي</option>
-              <option>الرابع ابتدائي</option>
-              <option>الخامس ابتدائي</option>
-              <option>السادس ابتدائي</option>
+              <option>الأول ابتدائي</option><option>الثاني ابتدائي</option>
+              <option>الثالث ابتدائي</option><option>الرابع ابتدائي</option>
+              <option>الخامس ابتدائي</option><option>السادس ابتدائي</option>
             </optgroup>
             <optgroup label="متوسط">
-              <option>الأول متوسط</option>
-              <option>الثاني متوسط</option>
-              <option>الثالث متوسط</option>
+              <option>الأول متوسط</option><option>الثاني متوسط</option><option>الثالث متوسط</option>
             </optgroup>
             <optgroup label="ثانوي">
-              <option>الأول ثانوي</option>
-              <option>الثاني ثانوي</option>
-              <option>الثالث ثانوي</option>
+              <option>الأول ثانوي</option><option>الثاني ثانوي</option><option>الثالث ثانوي</option>
             </optgroup>
           </select>
         </label>
-
         <label>
           صورة الطالب (اختياري)
           <input type="file" id="studentImage" accept="image/*" capture="environment">
@@ -314,19 +133,16 @@
         <div id="imagePreviewWrap" class="hidden">
           <img id="imagePreview" class="image-preview" alt="معاينة الصورة">
         </div>
-
         <button type="submit" id="submitBtn">تسجيل الطالب</button>
         <p class="error" id="errorMsg"></p>
       </form>
     </div>
 
-    <!-- ===== شاشة النجاح ===== -->
     <div id="successView" class="hidden">
       <div id="badgeCard">
         <div class="sun-icon">☀️</div>
         <h1>تم تسجيل الطالب</h1>
         <p class="subtitle">باسم <span id="successName"></span></p>
-
         <div class="badge">
           <img id="badgePhoto" class="badge-photo hidden" alt="صورة الطالب">
           <div class="badge-row">
@@ -341,7 +157,6 @@
         </div>
       </div>
       <p class="qr-hint">صوّر الباركود بكاميرا الجوال لتسجيل الدخول مباشرة</p>
-
       <button id="downloadBtn" type="button">تحميل البطاقة</button>
       <button id="resetBtn" type="button" class="btn-secondary">تسجيل طالب آخر</button>
     </div>
@@ -349,10 +164,13 @@
 </div>
 
 <script>
-  // ⚠️ عدّل هذا الرابط بعد نشر Apps Script كـ Web App
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywKz3UacdKzDPMgOdeolOfkIePoSXvPtzzucu8abs8wCJILoQc4xmbgfOoknZ0tAsVww/exec';
-
-  // ⚠️ عدّل هذا الرابط لاحقًا برابط تطبيق الطالب (سهل التعديل، سطر واحد فقط)
+  /* =========================================================================
+     مهم جدًا قبل النشر:
+     1) APPS_SCRIPT_URL  -> رابط /exec لتطبيق الويب بعد نشر Code.gs
+        (Deploy > New deployment > Web app، Execute as: Me، Who has access: Anyone)
+     2) STUDENT_APP_BASE_URL -> رابط تطبيق الطالب الذي يفتحه الباركود
+     ========================================================================= */
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzp_QwZa7_KARvdKv36SGWApDFaVldRnnpPmqzc9Iw3jG3dVtZ_OZPDXGagOYicUUTeRw/exec';
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
 
   const form = document.getElementById('registerForm');
@@ -369,22 +187,14 @@
   document.getElementById('studentImage').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     const wrap = document.getElementById('imagePreviewWrap');
-
-    if (!file) {
-      compressedImageBase64 = null;
-      wrap.classList.add('hidden');
-      return;
-    }
-
+    if (!file) { compressedImageBase64 = null; wrap.classList.add('hidden'); return; }
     try {
       compressedImageBase64 = await compressImage(file, 800, 0.7);
       document.getElementById('imagePreview').src = 'data:image/jpeg;base64,' + compressedImageBase64;
       wrap.classList.remove('hidden');
-      alert('✅ تم تحميل الصورة بنجاح - الحجم: ' + compressedImageBase64.length + ' حرف');
     } catch (err) {
       errorMsg.textContent = 'تعذر تحميل الصورة، يمكنك المتابعة بدونها';
-      compressedImageBase64 = null;
-      wrap.classList.add('hidden');
+      compressedImageBase64 = null; wrap.classList.add('hidden');
     }
   });
 
@@ -395,16 +205,10 @@
         const img = new Image();
         img.onload = () => {
           let { width, height } = img;
-          if (width > height && width > maxDim) {
-            height = Math.round(height * (maxDim / width));
-            width = maxDim;
-          } else if (height >= width && height > maxDim) {
-            width = Math.round(width * (maxDim / height));
-            height = maxDim;
-          }
+          if (width > height && width > maxDim) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else if (height >= width && height > maxDim) { width = Math.round(width * (maxDim / height)); height = maxDim; }
           const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = width; canvas.height = height;
           canvas.getContext('2d').drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
         };
@@ -416,48 +220,50 @@
     });
   }
 
+  /**
+   * كل الاتصال بـ Apps Script يصير الآن عبر POST عادي -> doPost(e)
+   * بدون google.script.run وبدون HtmlService sandbox — تمامًا كآلية
+   * بوت التلجرام الناجحة. نستخدم Content-Type: text/plain لتفادي
+   * طلب preflight (OPTIONS) الذي يفشّل CORS مع Apps Script.
+   */
+  async function callAppsScript(payload) {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorMsg.textContent = '';
-
     const name = document.getElementById('studentName').value.trim();
     const stage = document.getElementById('studentStage').value;
-
-    if (!name || !stage) {
-      errorMsg.textContent = 'الاسم والمرحلة مطلوبان';
-      return;
-    }
+    if (!name || !stage) { errorMsg.textContent = 'الاسم والمرحلة مطلوبان'; return; }
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'جاري التسجيل...';
 
-    const payload = { action: 'registerStudent', name, stage };
-    if (compressedImageBase64) {
-      payload.imageBase64 = compressedImageBase64;
-      payload.imageMimeType = 'image/jpeg';
-    }
-
     try {
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
+      const data = await callAppsScript({
+        action: 'register',
+        name: name,
+        stage: stage,
+        imageBase64: compressedImageBase64,
+        imageMimeType: 'image/jpeg'
       });
-
-      const data = await res.json();
 
       if (!data.success) {
         errorMsg.textContent = data.error || 'حدث خطأ، حاول مرة أخرى';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'تسجيل الطالب';
+        submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
         return;
       }
-
       showSuccess(data);
     } catch (err) {
-      errorMsg.textContent = 'تعذر الاتصال بالخادم، تحقق من الإنترنت';
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'تسجيل الطالب';
+      errorMsg.textContent = 'حدث خطأ في الاتصال: ' + err.message;
+      submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     }
   });
 
@@ -480,30 +286,18 @@
 
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
-
-    const loginLink = `${STUDENT_APP_BASE_URL}?id=${data.id}&pw=${data.password}`;
-
-    new QRCode(qrContainer, {
-      text: loginLink,
-      width: 140,
-      height: 140,
-      colorDark: '#352868',
-      colorLight: '#ffffff'
-    });
+    const loginLink = STUDENT_APP_BASE_URL + '?id=' + data.id + '&pw=' + data.password;
+    new QRCode(qrContainer, { text: loginLink, width: 140, height: 140, colorDark: '#352868', colorLight: '#ffffff' });
 
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
+    submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
 
-    // حفظ نسخة من البطاقة بمجلد Drive تلقائيًا بالخلفية (لا يوقف المشرف ولا يظهر له تنبيه)
-    setTimeout(saveBadgeToDrive, 250);
+    setTimeout(saveBadgeToDrive, 500);
   }
 
   async function renderBadgeCanvas() {
-    return html2canvas(document.getElementById('badgeCard'), {
-      backgroundColor: '#ffffff',
-      scale: 2,
-      useCORS: true
-    });
+    return html2canvas(document.getElementById('badgeCard'), { backgroundColor: '#ffffff', scale: 2, useCORS: true });
   }
 
   async function saveBadgeToDrive() {
@@ -511,53 +305,36 @@
       const canvas = await renderBadgeCanvas();
       const dataUrl = canvas.toDataURL('image/png');
       lastBadgeDataUrl = dataUrl;
-
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'saveBadge',
-          id: currentStudentId,
-          imageBase64: dataUrl.split(',')[1]
-        })
+      const data = await callAppsScript({
+        action: 'saveBadge',
+        id: currentStudentId,
+        imageBase64: dataUrl.split(',')[1]
       });
-
-      const result = await res.json();
-      if (!result.success) {
-        console.warn('saveBadge error:', result.error);
-        alert('تنبيه - فشل حفظ البطاقة في Drive:\n' + result.error);
+      if (!data.success) {
+        console.warn('فشل حفظ البطاقة على Drive: ' + data.error);
       }
     } catch (err) {
-      console.warn('saveBadgeToDrive catch:', err.message);
-      alert('تنبيه - خطأ في تحويل البطاقة لصورة:\n' + err.message);
+      console.warn('خطأ في تحويل/حفظ البطاقة: ' + err.message);
     }
   }
 
   document.getElementById('downloadBtn').addEventListener('click', async () => {
     let dataUrl = lastBadgeDataUrl;
-    if (!dataUrl) {
-      const canvas = await renderBadgeCanvas();
-      dataUrl = canvas.toDataURL('image/png');
-    }
+    if (!dataUrl) { const canvas = await renderBadgeCanvas(); dataUrl = canvas.toDataURL('image/png'); }
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = `بطاقة_${currentStudentName || 'طالب'}.png`;
+    link.download = 'بطاقة_' + (currentStudentName || 'طالب') + '.png';
     link.click();
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     form.reset();
-    compressedImageBase64 = null;
-    currentStudentId = null;
-    currentStudentName = null;
-    lastBadgeDataUrl = null;
+    compressedImageBase64 = null; currentStudentId = null; currentStudentName = null; lastBadgeDataUrl = null;
     document.getElementById('imagePreviewWrap').classList.add('hidden');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'تسجيل الطالب';
+    submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     successView.classList.add('hidden');
     formView.classList.remove('hidden');
   });
 </script>
-
 </body>
 </html>
