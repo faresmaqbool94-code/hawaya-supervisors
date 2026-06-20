@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --blue:#2F6FBF;
@@ -88,23 +89,22 @@
   /* بطاقة الطالب بشكل بطاقة هوية/بنكية: يمين = شعار + معلومات، يسار = صورة + باركود */
   .id-card{
     position:relative;margin:18px 0 4px;border-radius:16px;padding:14px;
-    background:linear-gradient(135deg, #15101F, #241A3D 55%, #32224F);
+    background:linear-gradient(135deg, var(--blue), var(--violet) 55%, var(--pink) 130%);
     color:#fff;overflow:hidden;animation:rise .45s ease;
     display:flex;align-items:flex-start;gap:12px;
   }
   .id-card::after{
     content:"";position:absolute;inset:0;
-    background:radial-gradient(circle at 100% 0%, rgba(255,255,255,.10), transparent 55%);
+    background:radial-gradient(circle at 100% 0%, rgba(255,255,255,.22), transparent 55%);
     pointer-events:none;
   }
   @keyframes rise{0%{transform:translateY(14px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
 
   .id-card-info{flex:1;min-width:0;text-align:right;position:relative;z-index:1;}
-  .id-card-logo-wrap{display:block;margin-bottom:8px;line-height:0;}
-  .id-card-logo{height:24px;width:auto;display:inline-block;}
-  .id-card-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(255,255,255,.16);}
-  .id-card-row:first-of-type{border-top:none;}
-  .id-card-label{font-size:.66rem;color:rgba(255,255,255,.65);font-weight:700;white-space:nowrap;}
+  .id-card-logo-wrap{display:block;margin-bottom:10px;line-height:0;}
+  .id-card-logo{height:34px;width:auto;display:inline-block;}
+  .id-card-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:1px 0;}
+  .id-card-label{font-size:.62rem;color:rgba(255,255,255,.62);font-weight:700;white-space:nowrap;}
   .id-card-value{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:.85rem;font-weight:700;color:#fff;letter-spacing:.2px;overflow:hidden;text-overflow:ellipsis;}
 
   /* عنصر واحد فقط للصورة (بدل صورة + مكان فاضي منفصلين) لمنع ظهور الاثنين معًا بالغلط */
@@ -171,10 +171,10 @@
       <div id="badgeCard" class="id-card">
         <div class="id-card-info">
           <div class="id-card-logo-wrap"><img class="id-card-logo app-logo" alt="هواية الصيفي"></div>
-          <div class="id-card-row"><span class="id-card-label">الاسم</span><span class="id-card-value" id="cardName"></span></div>
-          <div class="id-card-row"><span class="id-card-label">ID</span><span class="id-card-value" id="badgeId"></span></div>
-          <div class="id-card-row"><span class="id-card-label">الصف</span><span class="id-card-value" id="cardStage"></span></div>
-          <div class="id-card-row"><span class="id-card-label">الرقم السري</span><span class="id-card-value" id="badgePw"></span></div>
+          <div class="id-card-row"><span class="id-card-value" id="cardName"></span><span class="id-card-label">الاسم</span></div>
+          <div class="id-card-row"><span class="id-card-value" id="badgeId"></span><span class="id-card-label">ID</span></div>
+          <div class="id-card-row"><span class="id-card-value" id="cardStage"></span><span class="id-card-label">الصف</span></div>
+          <div class="id-card-row"><span class="id-card-value" id="badgePw"></span><span class="id-card-label">الرقم السري</span></div>
         </div>
         <div class="id-card-visual">
           <div id="photoBox" class="id-card-photo-box">🧒</div>
@@ -216,7 +216,7 @@
   let compressedImageBase64 = null;
   let currentStudentId = null;
   let currentStudentName = null;
-  let lastBadgeDataUrl = null;
+  let lastBadgePdfBlob = null;
 
   document.getElementById('studentImage').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -275,6 +275,33 @@
     return json.secure_url;
   }
 
+  /**
+   * رفع ملف (Blob) مباشرة إلى Cloudinary — نستخدمها لرفع البطاقة كـ PDF.
+   * Cloudinary يدعم PDF عبر endpoint الصور نفسه بدون أي تغيير إضافي.
+   */
+  async function uploadFileToCloudinary(blob, folder, filename) {
+    const fd = new FormData();
+    fd.append('file', blob, filename);
+    fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    fd.append('folder', folder);
+
+    const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: fd });
+    const json = await res.json();
+    if (!res.ok || !json.secure_url) {
+      throw new Error(json.error ? json.error.message : 'فشل الرفع إلى Cloudinary');
+    }
+    return json.secure_url;
+  }
+
+  /** يحوّل كانفاس البطاقة (الصورة المرسومة بـ html2canvas) إلى ملف PDF (Blob) */
+  function canvasToPdfBlob(canvas) {
+    const { jsPDF } = window.jspdf;
+    const orientation = canvas.width >= canvas.height ? 'landscape' : 'portrait';
+    const pdf = new jsPDF({ orientation: orientation, unit: 'px', format: [canvas.width, canvas.height] });
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+    return pdf.output('blob');
+  }
+
   /** الاتصال بـ Apps Script يصير الآن فقط لكتابة البيانات في الشيت (نص + روابط جاهزة) */
   async function callAppsScript(payload) {
     const res = await fetch(APPS_SCRIPT_URL, {
@@ -314,7 +341,7 @@
         submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
         return;
       }
-      await showSuccess(data);
+      showSuccess(data); // لا await هنا عمدًا — التسجيل يكتمل فورًا، وحفظ البطاقة يجري بالخلفية
       submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     } catch (err) {
       errorMsg.textContent = 'حدث خطأ في الاتصال: ' + err.message;
@@ -346,10 +373,15 @@
     });
   }
 
-  async function showSuccess(data) {
+  /**
+   * التسجيل يظهر فورًا بدون انتظار. حفظ البطاقة (تصوير + رفع + كتابة الرابط
+   * بالشيت) يجري بالخلفية في نفس اللحظة، ونحدّث "badgeStatus" لما يخلص —
+   * بدون ما نوقف المستخدم أو نأخر زر التسجيل.
+   */
+  function showSuccess(data) {
     currentStudentId = data.id;
     currentStudentName = data.name;
-    lastBadgeDataUrl = null;
+    lastBadgePdfBlob = null;
 
     document.getElementById('successName').textContent = data.name;
     document.getElementById('cardName').textContent = data.name;
@@ -365,37 +397,30 @@
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
 
-    // نعطّل أزرار البطاقة ونظهر حالة "جاري الحفظ" لحد ما تنتهي العملية فعليًا
     const downloadBtn = document.getElementById('downloadBtn');
     const resetBtn = document.getElementById('resetBtn');
     const badgeStatus = document.getElementById('badgeStatus');
-    downloadBtn.disabled = true; resetBtn.disabled = true;
     badgeStatus.style.color = 'var(--text-muted)';
-    badgeStatus.textContent = '⏳ جاري حفظ نسخة البطاقة، لحظات...';
+    badgeStatus.textContent = '⏳ جاري حفظ نسخة البطاقة بالخلفية...';
     badgeStatus.style.display = 'block';
 
-    // ننتظر تحميل الصورة والخطوط فعليًا قبل التصوير، بحدود زمنية تمنع التعليق إلى الأبد
-    await setPhotoBox(data.imageUrl);
-    if (document.fonts && document.fonts.ready) {
-      try { await withTimeout(document.fonts.ready, 1500, 'فونت'); } catch (_) { /* تجاهل، لسنا بحاجة لها للاستمرار */ }
-    }
-
-    let result;
-    try {
-      result = await withTimeout(saveBadge(), 15000, 'انتهت المهلة (15 ثانية) — تحقق من الاتصال بالإنترنت وحاول مجددًا');
-    } catch (timeoutErr) {
-      result = { ok: false, error: timeoutErr.message };
-    }
-
-    if (result.ok) {
-      badgeStatus.style.display = 'none';
-    } else {
-      badgeStatus.style.color = 'var(--error)';
-      badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + result.error;
-      badgeStatus.style.display = 'block';
-    }
-
-    downloadBtn.disabled = false; resetBtn.disabled = false;
+    // كل ما يلي يجري بالخلفية فورًا، بدون انتظار من المستخدم ولا تأخير الـ UI
+    setPhotoBox(data.imageUrl)
+      .then(() => withTimeout(saveBadge(), 15000, 'انتهت المهلة (15 ثانية) — تحقق من الاتصال بالإنترنت'))
+      .then((result) => {
+        if (result.ok) {
+          badgeStatus.style.display = 'none';
+        } else {
+          badgeStatus.style.color = 'var(--error)';
+          badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + result.error;
+          badgeStatus.style.display = 'block';
+        }
+      })
+      .catch((err) => {
+        badgeStatus.style.color = 'var(--error)';
+        badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + (err && err.message ? err.message : err);
+        badgeStatus.style.display = 'block';
+      });
   }
 
   /** يحوّل أي Promise معلّق إلى خطأ صريح بعد مهلة معينة، بدل التعليق إلى الأبد */
@@ -420,16 +445,16 @@
     return canvas;
   }
 
-  /** نسوي البطاقة كصورة، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script
+  /** نسوي البطاقة PDF، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script
    *  ترجع { ok: true } أو { ok: false, error: '...' } بدل ما تخفي الخطأ في Console فقط
    */
   async function saveBadge() {
     try {
       const canvas = await renderBadgeCanvas();
-      const dataUrl = canvas.toDataURL('image/png');
-      lastBadgeDataUrl = dataUrl;
+      const pdfBlob = canvasToPdfBlob(canvas);
+      lastBadgePdfBlob = pdfBlob;
 
-      const badgeUrl = await uploadToCloudinary(dataUrl.split(',')[1], 'badges', 'image/png');
+      const badgeUrl = await uploadFileToCloudinary(pdfBlob, 'badges', (currentStudentId || 'badge') + '.pdf');
 
       const data = await callAppsScript({
         action: 'saveBadge',
@@ -447,17 +472,22 @@
   }
 
   document.getElementById('downloadBtn').addEventListener('click', async () => {
-    let dataUrl = lastBadgeDataUrl;
-    if (!dataUrl) { const canvas = await renderBadgeCanvas(); dataUrl = canvas.toDataURL('image/png'); }
+    let blob = lastBadgePdfBlob;
+    if (!blob) {
+      const canvas = await renderBadgeCanvas();
+      blob = canvasToPdfBlob(canvas);
+    }
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = 'بطاقة_' + (currentStudentName || 'طالب') + '.png';
+    link.href = url;
+    link.download = 'بطاقة_' + (currentStudentName || 'طالب') + '.pdf';
     link.click();
+    URL.revokeObjectURL(url);
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     form.reset();
-    compressedImageBase64 = null; currentStudentId = null; currentStudentName = null; lastBadgeDataUrl = null;
+    compressedImageBase64 = null; currentStudentId = null; currentStudentName = null; lastBadgePdfBlob = null;
     document.getElementById('imagePreviewWrap').classList.add('hidden');
     submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     successView.classList.add('hidden');
