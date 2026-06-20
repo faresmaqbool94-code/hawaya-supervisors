@@ -11,7 +11,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --blue:#2F6FBF;
@@ -89,15 +88,29 @@
   /* بطاقة الطالب بشكل بطاقة هوية/بنكية: يمين = شعار + معلومات، يسار = صورة + باركود */
   .id-card{
     position:relative;margin:18px 0 4px;border-radius:16px;padding:14px;
-    background:linear-gradient(225deg, #ffffff 0%, var(--blue) 22%, var(--indigo) 55%, var(--violet) 80%, var(--pink) 115%);
+    background:linear-gradient(135deg, var(--blue), var(--indigo) 45%, var(--violet) 75%, var(--pink) 105%);
     color:#fff;overflow:hidden;animation:rise .45s ease;
     display:flex;align-items:flex-start;gap:12px;
   }
   @keyframes rise{0%{transform:translateY(14px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
 
   .id-card-info{flex:1;min-width:0;text-align:right;position:relative;z-index:1;}
-  .id-card-logo-wrap{display:block;margin:0 0 10px 0;line-height:0;}
-  .id-card-logo{height:44px;width:auto;display:inline-block;}
+
+  /* إطار الشعار بشكل غيمة: قاعدة كبسولة + دائرتين فوق لتكوين نتوءات الغيمة */
+  .id-card-logo-wrap{
+    position:relative;display:inline-block;margin:8px 0 10px 0;line-height:0;
+    background:rgba(255,255,255,.62);
+    border-radius:999px;
+    padding:10px 20px;
+  }
+  .id-card-logo-wrap::before,
+  .id-card-logo-wrap::after{
+    content:"";position:absolute;border-radius:50%;
+    background:rgba(255,255,255,.62);
+  }
+  .id-card-logo-wrap::before{ width:30px; height:30px; top:-13px; right:16px; }
+  .id-card-logo-wrap::after{ width:20px; height:20px; top:-7px; right:40px; }
+  .id-card-logo{height:40px;width:auto;display:inline-block;position:relative;}
   .id-card-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 0;}
   .id-card-label{font-size:.62rem;color:rgba(255,255,255,.62);font-weight:700;white-space:nowrap;}
   .id-card-value{font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis;}
@@ -220,7 +233,7 @@
   let compressedImageBase64 = null;
   let currentStudentId = null;
   let currentStudentName = null;
-  let lastBadgePdfBlob = null;
+  let lastBadgeBlob = null;
 
   document.getElementById('studentImage').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -297,13 +310,9 @@
     return json.secure_url;
   }
 
-  /** يحوّل كانفاس البطاقة (الصورة المرسومة بـ html2canvas) إلى ملف PDF (Blob) */
-  function canvasToPdfBlob(canvas) {
-    const { jsPDF } = window.jspdf;
-    const orientation = canvas.width >= canvas.height ? 'landscape' : 'portrait';
-    const pdf = new jsPDF({ orientation: orientation, unit: 'px', format: [canvas.width, canvas.height] });
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
-    return pdf.output('blob');
+  /** يحوّل كانفاس البطاقة إلى صورة PNG (Blob) عادية */
+  function canvasToPngBlob(canvas) {
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   }
 
   /** الاتصال بـ Apps Script يصير الآن فقط لكتابة البيانات في الشيت (نص + روابط جاهزة) */
@@ -386,7 +395,7 @@
    */
   function showPreview(data) {
     pendingRegistration = data; // لسا غير محفوظة بالشيت
-    lastBadgePdfBlob = null;
+    lastBadgeBlob = null;
 
     document.getElementById('successHeading').textContent = 'معاينة البطاقة';
     document.getElementById('successName').textContent = data.name;
@@ -507,16 +516,16 @@
     return canvas;
   }
 
-  /** نسوي البطاقة PDF، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script
+  /** نسوي البطاقة صورة PNG، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script
    *  ترجع { ok: true } أو { ok: false, error: '...' } بدل ما تخفي الخطأ في Console فقط
    */
   async function saveBadge() {
     try {
       const canvas = await renderBadgeCanvas();
-      const pdfBlob = canvasToPdfBlob(canvas);
-      lastBadgePdfBlob = pdfBlob;
+      const pngBlob = await canvasToPngBlob(canvas);
+      lastBadgeBlob = pngBlob;
 
-      const badgeUrl = await uploadFileToCloudinary(pdfBlob, 'badges', (currentStudentId || 'badge') + '_' + Date.now() + '.pdf');
+      const badgeUrl = await uploadFileToCloudinary(pngBlob, 'badges', (currentStudentId || 'badge') + '_' + Date.now() + '.png');
 
       const data = await callAppsScript({
         action: 'saveBadge',
@@ -534,22 +543,22 @@
   }
 
   document.getElementById('downloadBtn').addEventListener('click', async () => {
-    let blob = lastBadgePdfBlob;
+    let blob = lastBadgeBlob;
     if (!blob) {
       const canvas = await renderBadgeCanvas();
-      blob = canvasToPdfBlob(canvas);
+      blob = await canvasToPngBlob(canvas);
     }
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'بطاقة_' + (currentStudentName || 'طالب') + '.pdf';
+    link.download = 'بطاقة_' + (currentStudentName || 'طالب') + '.png';
     link.click();
     URL.revokeObjectURL(url);
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     form.reset();
-    compressedImageBase64 = null; currentStudentId = null; currentStudentName = null; lastBadgePdfBlob = null;
+    compressedImageBase64 = null; currentStudentId = null; currentStudentName = null; lastBadgeBlob = null;
     document.getElementById('imagePreviewWrap').classList.add('hidden');
     submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     successView.classList.add('hidden');
