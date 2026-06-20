@@ -89,23 +89,18 @@
   /* بطاقة الطالب بشكل بطاقة هوية/بنكية: يمين = شعار + معلومات، يسار = صورة + باركود */
   .id-card{
     position:relative;margin:18px 0 4px;border-radius:16px;padding:14px;
-    background:linear-gradient(135deg, var(--blue), var(--violet) 55%, var(--pink) 130%);
+    background:linear-gradient(225deg, #ffffff 0%, var(--blue) 22%, var(--indigo) 55%, var(--violet) 80%, var(--pink) 115%);
     color:#fff;overflow:hidden;animation:rise .45s ease;
     display:flex;align-items:flex-start;gap:12px;
-  }
-  .id-card::after{
-    content:"";position:absolute;inset:0;
-    background:radial-gradient(circle at 100% 0%, rgba(255,255,255,.22), transparent 55%);
-    pointer-events:none;
   }
   @keyframes rise{0%{transform:translateY(14px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
 
   .id-card-info{flex:1;min-width:0;text-align:right;position:relative;z-index:1;}
-  .id-card-logo-wrap{display:block;margin-bottom:10px;line-height:0;}
-  .id-card-logo{height:34px;width:auto;display:inline-block;}
+  .id-card-logo-wrap{display:block;margin:-4px -4px 10px 0;line-height:0;}
+  .id-card-logo{height:44px;width:auto;display:inline-block;}
   .id-card-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:1px 0;}
   .id-card-label{font-size:.62rem;color:rgba(255,255,255,.62);font-weight:700;white-space:nowrap;}
-  .id-card-value{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:.85rem;font-weight:700;color:#fff;letter-spacing:.2px;overflow:hidden;text-overflow:ellipsis;}
+  .id-card-value{font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis;}
 
   /* عنصر واحد فقط للصورة (بدل صورة + مكان فاضي منفصلين) لمنع ظهور الاثنين معًا بالغلط */
   .id-card-visual{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;position:relative;z-index:1;}
@@ -165,8 +160,8 @@
 
     <div id="successView" class="hidden">
       <div class="sun-icon">☀️</div>
-      <h1>تم تسجيل الطالب</h1>
-      <p class="subtitle">باسم <span id="successName"></span></p>
+      <h1 id="successHeading">معاينة البطاقة</h1>
+      <p class="subtitle">راجع بيانات <span id="successName"></span> قبل التسجيل النهائي</p>
 
       <div id="badgeCard" class="id-card">
         <div class="id-card-info">
@@ -183,9 +178,18 @@
       </div>
 
       <p class="qr-hint">صوّر الباركود بكاميرا الجوال لتسجيل الدخول مباشرة</p>
-      <p class="qr-hint" id="badgeStatus" style="display:none;">⏳ جاري حفظ نسخة البطاقة، لحظات...</p>
-      <button id="downloadBtn" type="button">تحميل البطاقة</button>
-      <button id="resetBtn" type="button" class="btn-secondary">تسجيل طالب آخر</button>
+      <p class="qr-hint" id="badgeStatus" style="display:none;"></p>
+
+      <div id="confirmActions">
+        <button id="confirmBtn" type="button">✅ تأكيد وتسجيل الطالب</button>
+        <button id="backBtn" type="button" class="btn-secondary">↩️ رجوع وتعديل البيانات</button>
+        <p class="error" id="confirmErrorMsg"></p>
+      </div>
+
+      <div id="finalActions" class="hidden">
+        <button id="downloadBtn" type="button">تحميل البطاقة</button>
+        <button id="resetBtn" type="button" class="btn-secondary">تسجيل طالب آخر</button>
+      </div>
     </div>
 </div>
 
@@ -200,7 +204,7 @@
   const CLOUDINARY_UPLOAD_PRESET = 'hawaya_upload';
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzzwgm2Rap0kBTA0jzt2G3MgBIMWlqfmtE4QmRl6YwnbPHxY9YhH6c6wyMNh9WdXmNeTw/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9BLgW8AhigD55YMK7iTCtRR0KYT5DgZNwjGPAoTr9iAQPHN6ADGTie8qos4tMmRXwmA/exec';
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
 
   // شعار هواية الصيفي (ملف خارجي مفرّغ الخلفية، بجانب index.html على GitHub)
@@ -330,7 +334,7 @@
       }
 
       const data = await callAppsScript({
-        action: 'register',
+        action: 'generatePreview',
         name: name,
         stage: stage,
         imageUrl: imageUrl
@@ -341,13 +345,15 @@
         submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
         return;
       }
-      showSuccess(data); // لا await هنا عمدًا — التسجيل يكتمل فورًا، وحفظ البطاقة يجري بالخلفية
+      showPreview(data); // عرض فقط — لا يكتب شي بالشيت لحد ما يضغط المشرف "تأكيد"
       submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     } catch (err) {
       errorMsg.textContent = 'حدث خطأ في الاتصال: ' + err.message;
       submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     }
   });
+
+  let pendingRegistration = null; // بيانات المعاينة المؤقتة (غير محفوظة بالشيت بعد)
 
   /**
    * تحضّر صورة الطالب داخل عنصر واحد فقط (#photoBox) — بدون عنصرين متبادلين،
@@ -378,11 +384,11 @@
    * بالشيت) يجري بالخلفية في نفس اللحظة، ونحدّث "badgeStatus" لما يخلص —
    * بدون ما نوقف المستخدم أو نأخر زر التسجيل.
    */
-  function showSuccess(data) {
-    currentStudentId = data.id;
-    currentStudentName = data.name;
+  function showPreview(data) {
+    pendingRegistration = data; // لسا غير محفوظة بالشيت
     lastBadgePdfBlob = null;
 
+    document.getElementById('successHeading').textContent = 'معاينة البطاقة';
     document.getElementById('successName').textContent = data.name;
     document.getElementById('cardName').textContent = data.name;
     document.getElementById('cardStage').textContent = data.stage || '';
@@ -397,14 +403,68 @@
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
 
-    const downloadBtn = document.getElementById('downloadBtn');
-    const resetBtn = document.getElementById('resetBtn');
+    document.getElementById('confirmErrorMsg').textContent = '';
+    document.getElementById('confirmActions').classList.remove('hidden');
+    document.getElementById('finalActions').classList.add('hidden');
+    document.getElementById('badgeStatus').style.display = 'none';
+  }
+
+  document.getElementById('backBtn').addEventListener('click', () => {
+    pendingRegistration = null;
+    successView.classList.add('hidden');
+    formView.classList.remove('hidden');
+    // نتعمّد عدم مسح حقول الفورم — تبقى معبّأة عشان المشرف يعدّل عليها بسهولة
+  });
+
+  document.getElementById('confirmBtn').addEventListener('click', async () => {
+    if (!pendingRegistration) return;
+    const confirmBtn = document.getElementById('confirmBtn');
+    const confirmErrorMsg = document.getElementById('confirmErrorMsg');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'جاري التأكيد...';
+    confirmErrorMsg.textContent = '';
+
+    try {
+      const result = await callAppsScript({
+        action: 'confirmRegister',
+        id: pendingRegistration.id,
+        password: pendingRegistration.password,
+        name: pendingRegistration.name,
+        stage: pendingRegistration.stage,
+        imageUrl: pendingRegistration.imageUrl
+      });
+
+      if (!result.success) {
+        confirmErrorMsg.textContent = result.error || 'تعذر تأكيد التسجيل، حاول مرة أخرى';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '✅ تأكيد وتسجيل الطالب';
+        return;
+      }
+
+      // تأكّد التسجيل فعليًا بالشيت — نظهر الحالة النهائية ونبدأ حفظ البطاقة بالخلفية
+      currentStudentId = pendingRegistration.id;
+      currentStudentName = pendingRegistration.name;
+
+      document.getElementById('successHeading').textContent = 'تم تسجيل الطالب';
+      document.getElementById('confirmActions').classList.add('hidden');
+      document.getElementById('finalActions').classList.remove('hidden');
+
+      startBadgeBackgroundSave(pendingRegistration);
+      pendingRegistration = null;
+    } catch (err) {
+      confirmErrorMsg.textContent = 'حدث خطأ في الاتصال: ' + (err && err.message ? err.message : err);
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '✅ تأكيد وتسجيل الطالب';
+    }
+  });
+
+  /** يصوّر البطاقة ويرفعها ويخزّن رابطها بالشيت — يجري بالخلفية بدون إيقاف المستخدم */
+  function startBadgeBackgroundSave(data) {
     const badgeStatus = document.getElementById('badgeStatus');
     badgeStatus.style.color = 'var(--text-muted)';
     badgeStatus.textContent = '⏳ جاري حفظ نسخة البطاقة بالخلفية...';
     badgeStatus.style.display = 'block';
 
-    // كل ما يلي يجري بالخلفية فورًا، بدون انتظار من المستخدم ولا تأخير الـ UI
     setPhotoBox(data.imageUrl)
       .then(() => withTimeout(saveBadge(), 15000, 'انتهت المهلة (15 ثانية) — تحقق من الاتصال بالإنترنت'))
       .then((result) => {
