@@ -217,7 +217,7 @@
   const CLOUDINARY_UPLOAD_PRESET = 'hawaya_upload';
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9BLgW8AhigD55YMK7iTCtRR0KYT5DgZNwjGPAoTr9iAQPHN6ADGTie8qos4tMmRXwmA/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYysTKnN7ctxYwRM-u0ppkGDzbi7YmWBlhqkcfrtoagXrrQY_rKzDir-oyYyedfsU-tQ/exec';
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
 
   // شعار هواية الصيفي (ملف خارجي مفرّغ الخلفية، بجانب index.html على GitHub)
@@ -469,6 +469,36 @@
     }
   });
 
+  /**
+   * يحفظ رابط البطاقة بالشيت. يجرّب fetch العادي أولًا (يعطي تأكيد استجابة حقيقي).
+   * لو فشل أو تجاوز مهلة قصيرة (6 ثواني)، يستخدم navigator.sendBeacon كخطة بديلة:
+   * sendBeacon مصمم خصيصًا ليضمن المتصفح محاولة إرسال الطلب حتى لو الصفحة
+   * راحت للخلفية أو انعلّقت — بعكس fetch العادي اللي ينقطع لو توقف تنفيذ
+   * الجافاسكربت. العيب الوحيد: ما نقدر نقرأ رد السيرفر بهذا المسار، فمافي
+   * تأكيد 100% إنه نجح فعليًا، فقط تأكيد إن المتصفح حاول الإرسال.
+   */
+  async function saveBadgeLink(id, badgeUrl) {
+    try {
+      const data = await withTimeout(
+        callAppsScript({ action: 'saveBadge', id: id, badgeUrl: badgeUrl }),
+        6000,
+        'فشل fetch أو تجاوز 6 ثواني'
+      );
+      if (data.success) return { ok: true, confirmed: true };
+      return { ok: false, confirmed: true, error: data.error || 'الشيت رفض الحفظ' };
+    } catch (_) {
+      // فشل fetch العادي أو تجاوز المهلة — يُحتمل إن الصفحة بطريقها للخلفية،
+      // نجرّب sendBeacon كخطة أخيرة مضمونة الإرسال (بدون تأكيد استجابة)
+      if (navigator.sendBeacon) {
+        const payload = JSON.stringify({ action: 'saveBadge', id: id, badgeUrl: badgeUrl });
+        const sent = navigator.sendBeacon(APPS_SCRIPT_URL, payload);
+        if (sent) return { ok: true, confirmed: false };
+        return { ok: false, confirmed: false, error: 'فشل sendBeacon أيضًا' };
+      }
+      return { ok: false, confirmed: false, error: 'هذا المتصفح لا يدعم sendBeacon' };
+    }
+  }
+
   /** يصوّر البطاقة ويرفعها ويخزّن رابطها بالشيت — يجري بالخلفية بدون إيقاف المستخدم */
   function startBadgeBackgroundSave(data) {
     const badgeStatus = document.getElementById('badgeStatus');
@@ -477,10 +507,14 @@
     badgeStatus.style.display = 'block';
 
     setPhotoBox(data.imageUrl)
-      .then(() => withTimeout(saveBadge(), 15000, 'انتهت المهلة (15 ثانية) — تحقق من الاتصال بالإنترنت'))
+      .then(() => withTimeout(saveBadge(), 20000, 'انتهت المهلة (20 ثانية) — تحقق من الاتصال بالإنترنت'))
       .then((result) => {
-        if (result.ok) {
+        if (result.ok && result.confirmed !== false) {
           badgeStatus.style.display = 'none';
+        } else if (result.ok && result.confirmed === false) {
+          badgeStatus.style.color = 'var(--text-muted)';
+          badgeStatus.textContent = '📨 تم إرسال طلب حفظ البطاقة، تحقّق من الشيت بعد قليل للتأكد';
+          badgeStatus.style.display = 'block';
         } else {
           badgeStatus.style.color = 'var(--error)';
           badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + result.error;
@@ -516,8 +550,8 @@
     return canvas;
   }
 
-  /** نسوي البطاقة صورة PNG، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script
-   *  ترجع { ok: true } أو { ok: false, error: '...' } بدل ما تخفي الخطأ في Console فقط
+  /** نسوي البطاقة صورة PNG، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت (fetch أو sendBeacon)
+   *  ترجع { ok, confirmed, error } بدل ما تخفي الخطأ في Console فقط
    */
   async function saveBadge() {
     try {
@@ -527,18 +561,9 @@
 
       const badgeUrl = await uploadFileToCloudinary(pngBlob, 'badges', (currentStudentId || 'badge') + '_' + Date.now() + '.png');
 
-      const data = await callAppsScript({
-        action: 'saveBadge',
-        id: currentStudentId,
-        badgeUrl: badgeUrl
-      });
-
-      if (!data.success) {
-        return { ok: false, error: 'الشيت رفض الحفظ: ' + (data.error || 'غير معروف') };
-      }
-      return { ok: true };
+      return await saveBadgeLink(currentStudentId, badgeUrl);
     } catch (err) {
-      return { ok: false, error: (err && err.message) ? err.message : String(err) };
+      return { ok: false, confirmed: true, error: (err && err.message) ? err.message : String(err) };
     }
   }
 
