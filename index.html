@@ -338,6 +338,8 @@
     const resetBtn = document.getElementById('resetBtn');
     const badgeStatus = document.getElementById('badgeStatus');
     downloadBtn.disabled = true; resetBtn.disabled = true;
+    badgeStatus.style.color = 'var(--text-muted)';
+    badgeStatus.textContent = '⏳ جاري حفظ نسخة البطاقة، لحظات...';
     badgeStatus.style.display = 'block';
 
     // ننتظر تحميل الصورة والخطوط فعليًا قبل التصوير، لتفادي بطاقة باهتة/ناقصة
@@ -346,9 +348,16 @@
       try { await document.fonts.ready; } catch (_) { /* تجاهل */ }
     }
 
-    await saveBadge();
+    await saveBadge().then((result) => {
+      if (result.ok) {
+        badgeStatus.style.display = 'none';
+      } else {
+        badgeStatus.style.color = 'var(--error)';
+        badgeStatus.textContent = '⚠️ تعذر حفظ البطاقة: ' + result.error;
+        badgeStatus.style.display = 'block';
+      }
+    });
 
-    badgeStatus.style.display = 'none';
     downloadBtn.disabled = false; resetBtn.disabled = false;
   }
 
@@ -362,7 +371,9 @@
     return canvas;
   }
 
-  /** نسوي البطاقة كصورة، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script */
+  /** نسوي البطاقة كصورة، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script
+   *  ترجع { ok: true } أو { ok: false, error: '...' } بدل ما تخفي الخطأ في Console فقط
+   */
   async function saveBadge() {
     try {
       const canvas = await renderBadgeCanvas();
@@ -376,11 +387,13 @@
         id: currentStudentId,
         badgeUrl: badgeUrl
       });
+
       if (!data.success) {
-        console.warn('فشل حفظ رابط البطاقة في الشيت: ' + data.error);
+        return { ok: false, error: 'الشيت رفض الحفظ: ' + (data.error || 'غير معروف') };
       }
+      return { ok: true };
     } catch (err) {
-      console.warn('خطأ في تحويل/رفع البطاقة: ' + err.message);
+      return { ok: false, error: (err && err.message) ? err.message : String(err) };
     }
   }
 
