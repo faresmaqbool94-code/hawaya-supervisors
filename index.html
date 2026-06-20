@@ -47,7 +47,6 @@
     position:relative;
     overflow:hidden;
   }
-  .logo{display:block;width:100%;max-width:230px;margin:0 auto 18px;}
   .welcome-pill{
     display:block;width:fit-content;margin:0 auto 16px;
     padding:7px 18px;border-radius:999px;
@@ -166,11 +165,15 @@
 <script>
   /* =========================================================================
      مهم جدًا قبل النشر:
-     1) APPS_SCRIPT_URL  -> رابط /exec لتطبيق الويب بعد نشر Code.gs
-        (Deploy > New deployment > Web app، Execute as: Me، Who has access: Anyone)
-     2) STUDENT_APP_BASE_URL -> رابط تطبيق الطالب الذي يفتحه الباركود
+     1) CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET -> من حساب Cloudinary
+     2) APPS_SCRIPT_URL -> رابط /exec لتطبيق الويب بعد نشر Code.gs
+     3) STUDENT_APP_BASE_URL -> رابط تطبيق الطالب الذي يفتحه الباركود
      ========================================================================= */
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4-fxYCH0uCSDAVIvL8R3eU5DtE2mJojIUs_nUT1ISnMRc0-kZYFnfP95tkXJ3G_R1Xg/exec';
+  const CLOUDINARY_CLOUD_NAME = 'dhv0ypi5d';
+  const CLOUDINARY_UPLOAD_PRESET = 'hawaya_upload';
+  const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
+
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzzwgm2Rap0kBTA0jzt2G3MgBIMWlqfmtE4QmRl6YwnbPHxY9YhH6c6wyMNh9WdXmNeTw/exec';
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
 
   const form = document.getElementById('registerForm');
@@ -221,11 +224,27 @@
   }
 
   /**
-   * كل الاتصال بـ Apps Script يصير الآن عبر POST عادي -> doPost(e)
-   * بدون google.script.run وبدون HtmlService sandbox — تمامًا كآلية
-   * بوت التلجرام الناجحة. نستخدم Content-Type: text/plain لتفادي
-   * طلب preflight (OPTIONS) الذي يفشّل CORS مع Apps Script.
+   * رفع مباشر إلى Cloudinary (من المتصفح، بدون Apps Script إطلاقًا)
+   * نستخدم unsigned upload preset، فلا نحتاج API Key أو Secret هنا إطلاقًا
+   * base64Data: نص base64 خام بدون "data:...;base64,"
+   * folder: مجلد منطقي داخل Cloudinary (اختياري، للتنظيم فقط) مثل "student-photos"
    */
+  async function uploadToCloudinary(base64Data, folder, mimeType) {
+    const dataUrl = 'data:' + mimeType + ';base64,' + base64Data;
+    const fd = new FormData();
+    fd.append('file', dataUrl);
+    fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    fd.append('folder', folder);
+
+    const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: fd });
+    const json = await res.json();
+    if (!res.ok || !json.secure_url) {
+      throw new Error(json.error ? json.error.message : 'فشل الرفع إلى Cloudinary');
+    }
+    return json.secure_url;
+  }
+
+  /** الاتصال بـ Apps Script يصير الآن فقط لكتابة البيانات في الشيت (نص + روابط جاهزة) */
   async function callAppsScript(payload) {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
@@ -247,12 +266,16 @@
     submitBtn.textContent = 'جاري التسجيل...';
 
     try {
+      let imageUrl = '';
+      if (compressedImageBase64) {
+        imageUrl = await uploadToCloudinary(compressedImageBase64, 'student-photos', 'image/jpeg');
+      }
+
       const data = await callAppsScript({
         action: 'register',
         name: name,
         stage: stage,
-        imageBase64: compressedImageBase64,
-        imageMimeType: 'image/jpeg'
+        imageUrl: imageUrl
       });
 
       if (!data.success) {
@@ -279,6 +302,7 @@
     const badgePhoto = document.getElementById('badgePhoto');
     if (data.imageUrl) {
       badgePhoto.src = data.imageUrl;
+      badgePhoto.crossOrigin = 'anonymous';
       badgePhoto.classList.remove('hidden');
     } else {
       badgePhoto.classList.add('hidden');
@@ -293,28 +317,32 @@
     successView.classList.remove('hidden');
     submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
 
-    setTimeout(saveBadgeToDrive, 500);
+    setTimeout(saveBadge, 500);
   }
 
   async function renderBadgeCanvas() {
     return html2canvas(document.getElementById('badgeCard'), { backgroundColor: '#ffffff', scale: 2, useCORS: true });
   }
 
-  async function saveBadgeToDrive() {
+  /** نسوي البطاقة كصورة، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script */
+  async function saveBadge() {
     try {
       const canvas = await renderBadgeCanvas();
       const dataUrl = canvas.toDataURL('image/png');
       lastBadgeDataUrl = dataUrl;
+
+      const badgeUrl = await uploadToCloudinary(dataUrl.split(',')[1], 'badges', 'image/png');
+
       const data = await callAppsScript({
         action: 'saveBadge',
         id: currentStudentId,
-        imageBase64: dataUrl.split(',')[1]
+        badgeUrl: badgeUrl
       });
       if (!data.success) {
-        console.warn('فشل حفظ البطاقة على Drive: ' + data.error);
+        console.warn('فشل حفظ رابط البطاقة في الشيت: ' + data.error);
       }
     } catch (err) {
-      console.warn('خطأ في تحويل/حفظ البطاقة: ' + err.message);
+      console.warn('خطأ في تحويل/رفع البطاقة: ' + err.message);
     }
   }
 
