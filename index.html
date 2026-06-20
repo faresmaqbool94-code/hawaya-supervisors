@@ -83,11 +83,12 @@
   @keyframes pop{0%{transform:scale(0) rotate(-15deg);opacity:0;}65%{transform:scale(1.15) rotate(6deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
   #successName{font-weight:700;color:var(--text);}
 
-  /* بطاقة الطالب بشكل بطاقة هوية/بنكية */
+  /* بطاقة الطالب بشكل بطاقة هوية/بنكية: يمين = شعار + معلومات، يسار = صورة + باركود */
   .id-card{
-    position:relative;margin:18px 0 4px;border-radius:18px;padding:18px 18px 16px;
+    position:relative;margin:18px 0 4px;border-radius:18px;padding:16px;
     background:linear-gradient(135deg, var(--indigo), var(--violet) 65%, var(--blue));
     color:#fff;overflow:hidden;animation:rise .45s ease;
+    display:flex;align-items:flex-start;gap:14px;
   }
   .id-card::after{
     content:"";position:absolute;inset:0;
@@ -95,21 +96,25 @@
     pointer-events:none;
   }
   @keyframes rise{0%{transform:translateY(14px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
-  .id-card-header{text-align:right;margin-bottom:14px;position:relative;z-index:1;}
-  .id-card-logo-wrap{display:inline-flex;align-items:center;background:#fff;border-radius:8px;padding:4px 10px;line-height:0;}
-  .id-card-logo{height:20px;width:auto;display:block;}
-  .id-card-visual{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:relative;z-index:1;}
+
+  .id-card-info{flex:1;min-width:0;text-align:right;position:relative;z-index:1;}
+  .id-card-logo-wrap{display:inline-flex;align-items:center;background:#fff;border-radius:8px;padding:4px 10px;margin-bottom:10px;line-height:0;}
+  .id-card-logo{height:18px;width:auto;display:block;}
+  .id-card-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-top:1px solid rgba(255,255,255,.22);}
+  .id-card-row:first-of-type{border-top:none;}
+  .id-card-label{font-size:.72rem;color:rgba(255,255,255,.72);font-weight:700;white-space:nowrap;}
+  .id-card-value{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:.95rem;font-weight:700;color:#fff;letter-spacing:.3px;overflow:hidden;text-overflow:ellipsis;}
+
+  .id-card-visual{display:flex;gap:8px;flex-shrink:0;position:relative;z-index:1;}
+  .id-card-visual-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
   .id-card-qr{background:#fff;border-radius:10px;padding:6px;line-height:0;display:inline-flex;}
   .id-card-qr img, .id-card-qr canvas{display:block;border-radius:4px;}
-  .id-card-photo{width:74px;height:74px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,255,255,.75);background:rgba(255,255,255,.15);}
+  .id-card-photo{width:70px;height:70px;border-radius:12px;object-fit:cover;border:2px solid rgba(255,255,255,.75);background:rgba(255,255,255,.15);}
   .id-card-photo-placeholder{
-    width:74px;height:74px;border-radius:14px;border:2px dashed rgba(255,255,255,.55);
-    background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.7rem;
+    width:70px;height:70px;border-radius:12px;border:2px dashed rgba(255,255,255,.55);
+    background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.6rem;
   }
-  .id-card-info{border-top:1px solid rgba(255,255,255,.28);padding-top:10px;position:relative;z-index:1;}
-  .id-card-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;}
-  .id-card-label{font-size:.74rem;color:rgba(255,255,255,.75);font-weight:700;}
-  .id-card-value{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:1rem;font-weight:700;color:#fff;letter-spacing:.4px;}
+  .id-card-caption{font-size:.62rem;color:rgba(255,255,255,.72);font-weight:700;}
 
   .qr-hint{text-align:center;font-size:.78rem;color:var(--text-muted);margin:8px 0 0;}
   .no-animate, .no-animate *{animation:none !important;}
@@ -162,19 +167,23 @@
       <p class="subtitle">باسم <span id="successName"></span></p>
 
       <div id="badgeCard" class="id-card">
-        <div class="id-card-header">
-          <span class="id-card-logo-wrap"><img class="id-card-logo app-logo" alt="هواية الصيفي"></span>
-        </div>
-        <div class="id-card-visual">
-          <img id="badgePhoto" class="id-card-photo hidden" alt="صورة الطالب">
-          <div id="badgePhotoPlaceholder" class="id-card-photo-placeholder">🧒</div>
-          <div class="id-card-qr" id="qrcode"></div>
-        </div>
         <div class="id-card-info">
+          <span class="id-card-logo-wrap"><img class="id-card-logo app-logo" alt="هواية الصيفي"></span>
           <div class="id-card-row"><span class="id-card-label">الاسم</span><span class="id-card-value" id="cardName"></span></div>
+          <div class="id-card-row"><span class="id-card-label">ID</span><span class="id-card-value" id="badgeId"></span></div>
           <div class="id-card-row"><span class="id-card-label">الصف</span><span class="id-card-value" id="cardStage"></span></div>
           <div class="id-card-row"><span class="id-card-label">الرقم السري</span><span class="id-card-value" id="badgePw"></span></div>
-          <div class="id-card-row"><span class="id-card-label">رقم الطالب</span><span class="id-card-value" id="badgeId"></span></div>
+        </div>
+        <div class="id-card-visual">
+          <div class="id-card-visual-item">
+            <div class="id-card-qr" id="qrcode"></div>
+            <span class="id-card-caption">الباركود</span>
+          </div>
+          <div class="id-card-visual-item">
+            <img id="badgePhoto" class="id-card-photo hidden" alt="صورة الطالب">
+            <div id="badgePhotoPlaceholder" class="id-card-photo-placeholder">🧒</div>
+            <span class="id-card-caption">صورة الطالب</span>
+          </div>
         </div>
       </div>
 
@@ -358,7 +367,7 @@
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
     const loginLink = STUDENT_APP_BASE_URL + '?id=' + data.id + '&pw=' + data.password;
-    new QRCode(qrContainer, { text: loginLink, width: 84, height: 84, colorDark: '#352868', colorLight: '#ffffff' });
+    new QRCode(qrContainer, { text: loginLink, width: 70, height: 70, colorDark: '#352868', colorLight: '#ffffff' });
 
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
