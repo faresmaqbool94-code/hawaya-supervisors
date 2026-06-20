@@ -95,6 +95,7 @@
   .qr-box{display:flex;justify-content:center;margin-top:14px;padding-top:14px;}
   .qr-box img, .qr-box canvas{border-radius:10px;}
   .qr-hint{text-align:center;font-size:.78rem;color:var(--text-muted);margin:8px 0 0;}
+  .no-animate, .no-animate *{animation:none !important;}
   @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
 </head>
@@ -156,6 +157,7 @@
         </div>
       </div>
       <p class="qr-hint">صوّر الباركود بكاميرا الجوال لتسجيل الدخول مباشرة</p>
+      <p class="qr-hint" id="badgeStatus" style="display:none;">⏳ جاري حفظ نسخة البطاقة، لحظات...</p>
       <button id="downloadBtn" type="button">تحميل البطاقة</button>
       <button id="resetBtn" type="button" class="btn-secondary">تسجيل طالب آخر</button>
     </div>
@@ -283,14 +285,28 @@
         submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
         return;
       }
-      showSuccess(data);
+      await showSuccess(data);
+      submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     } catch (err) {
       errorMsg.textContent = 'حدث خطأ في الاتصال: ' + err.message;
       submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     }
   });
 
-  function showSuccess(data) {
+  /** ننتظر تحميل صورة (لو فيه) قبل التصوير، بحد أقصى 4 ثواني حتى لا نتعلق لو الشبكة بطيئة */
+  function waitForImageLoad(imgEl) {
+    return new Promise((resolve) => {
+      if (imgEl.classList.contains('hidden') || !imgEl.getAttribute('src') || imgEl.complete) {
+        resolve();
+        return;
+      }
+      const timer = setTimeout(resolve, 4000);
+      imgEl.addEventListener('load', () => { clearTimeout(timer); resolve(); }, { once: true });
+      imgEl.addEventListener('error', () => { clearTimeout(timer); resolve(); }, { once: true });
+    });
+  }
+
+  async function showSuccess(data) {
     currentStudentId = data.id;
     currentStudentName = data.name;
     lastBadgeDataUrl = null;
@@ -301,10 +317,11 @@
 
     const badgePhoto = document.getElementById('badgePhoto');
     if (data.imageUrl) {
+      badgePhoto.crossOrigin = 'anonymous'; // مهم: يُعيَّن قبل src وإلا تُعتبر الصورة "ملوّثة" (tainted) عند التصوير
       badgePhoto.src = data.imageUrl;
-      badgePhoto.crossOrigin = 'anonymous';
       badgePhoto.classList.remove('hidden');
     } else {
+      badgePhoto.removeAttribute('src');
       badgePhoto.classList.add('hidden');
     }
 
@@ -315,13 +332,34 @@
 
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
-    submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
 
-    setTimeout(saveBadge, 500);
+    // نعطّل أزرار البطاقة ونظهر حالة "جاري الحفظ" لحد ما تنتهي العملية فعليًا
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const badgeStatus = document.getElementById('badgeStatus');
+    downloadBtn.disabled = true; resetBtn.disabled = true;
+    badgeStatus.style.display = 'block';
+
+    // ننتظر تحميل الصورة والخطوط فعليًا قبل التصوير، لتفادي بطاقة باهتة/ناقصة
+    await waitForImageLoad(badgePhoto);
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (_) { /* تجاهل */ }
+    }
+
+    await saveBadge();
+
+    badgeStatus.style.display = 'none';
+    downloadBtn.disabled = false; resetBtn.disabled = false;
   }
 
   async function renderBadgeCanvas() {
-    return html2canvas(document.getElementById('badgeCard'), { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    const badgeCard = document.getElementById('badgeCard');
+    badgeCard.classList.add('no-animate');
+    // نعطي المتصفح فرصة يعيد رسم العناصر بدون الأنيميشن قبل التصوير
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const canvas = await html2canvas(badgeCard, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    badgeCard.classList.remove('no-animate');
+    return canvas;
   }
 
   /** نسوي البطاقة كصورة، نرفعها لـ Cloudinary، ثم نخزن رابطها في الشيت عبر Apps Script */
