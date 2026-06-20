@@ -96,9 +96,9 @@
   @keyframes rise{0%{transform:translateY(14px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
 
   .id-card-info{flex:1;min-width:0;text-align:right;position:relative;z-index:1;}
-  .id-card-logo-wrap{display:block;margin:-4px -4px 10px 0;line-height:0;}
+  .id-card-logo-wrap{display:block;margin:0 0 10px 0;line-height:0;}
   .id-card-logo{height:44px;width:auto;display:inline-block;}
-  .id-card-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:1px 0;}
+  .id-card-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 0;}
   .id-card-label{font-size:.62rem;color:rgba(255,255,255,.62);font-weight:700;white-space:nowrap;}
   .id-card-value{font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis;}
 
@@ -400,6 +400,8 @@
     const loginLink = STUDENT_APP_BASE_URL + '?id=' + data.id + '&pw=' + data.password;
     new QRCode(qrContainer, { text: loginLink, width: 160, height: 160, colorDark: '#15101F', colorLight: '#ffffff' });
 
+    setPhotoBox(data.imageUrl); // مهم: عشان الصورة تبان وقت المعاينة نفسها، لا بعد التأكيد فقط
+
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
 
@@ -514,7 +516,7 @@
       const pdfBlob = canvasToPdfBlob(canvas);
       lastBadgePdfBlob = pdfBlob;
 
-      const badgeUrl = await uploadFileToCloudinary(pdfBlob, 'badges', (currentStudentId || 'badge') + '.pdf');
+      const badgeUrl = await uploadFileToCloudinary(pdfBlob, 'badges', (currentStudentId || 'badge') + '_' + Date.now() + '.pdf');
 
       const data = await callAppsScript({
         action: 'saveBadge',
