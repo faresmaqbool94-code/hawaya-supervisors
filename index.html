@@ -81,6 +81,13 @@
   .hidden{display:none;}
   .logo{display:block;width:100%;max-width:200px;margin:0 auto 18px;}
   .image-preview{display:block;width:96px;height:96px;object-fit:cover;border-radius:16px;margin:10px auto 0;border:2px solid #E7E2F2;}
+  .photo-source-buttons{display:flex;gap:8px;margin-top:8px;}
+  .photo-source-btn{
+    flex:1;width:auto;padding:11px 8px;border-radius:14px;font-size:.85rem;
+    font-family:'Almarai', sans-serif;font-weight:700;
+    background:#F3F0FA;color:var(--indigo);box-shadow:none;
+  }
+  .photo-source-btn.active{background:linear-gradient(95deg, var(--blue), var(--violet));color:#fff;}
   .sun-icon{font-size:2.1rem;text-align:center;margin-bottom:4px;animation:pop .5s ease;}
   @keyframes pop{0%{transform:scale(0) rotate(-15deg);opacity:0;}65%{transform:scale(1.15) rotate(6deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
   #successName{font-weight:700;color:var(--text);}
@@ -88,7 +95,7 @@
   /* بطاقة الطالب بشكل بطاقة هوية/بنكية: يمين = شعار + معلومات، يسار = صورة + باركود */
   .id-card{
     position:relative;margin:18px 0 4px;border-radius:16px;padding:14px;
-    background:linear-gradient(135deg, var(--blue), var(--indigo) 45%, var(--violet) 75%, var(--pink) 105%);
+    background:linear-gradient(135deg, #1A1430, var(--indigo) 40%, var(--violet) 75%, var(--pink) 110%);
     color:#fff;overflow:hidden;animation:rise .45s ease;
     display:flex;align-items:flex-start;gap:12px;
   }
@@ -98,19 +105,19 @@
 
   /* إطار الشعار بشكل غيمة: قاعدة كبسولة + دائرتين فوق لتكوين نتوءات الغيمة */
   .id-card-logo-wrap{
-    position:relative;display:inline-block;margin:8px 0 10px 0;line-height:0;
+    position:relative;display:inline-block;margin:2px 0 10px 0;line-height:0;
     background:rgba(255,255,255,.62);
     border-radius:999px;
-    padding:10px 20px;
+    padding:12px 24px;
   }
   .id-card-logo-wrap::before,
   .id-card-logo-wrap::after{
     content:"";position:absolute;border-radius:50%;
     background:rgba(255,255,255,.62);
   }
-  .id-card-logo-wrap::before{ width:30px; height:30px; top:-13px; right:16px; }
-  .id-card-logo-wrap::after{ width:20px; height:20px; top:-7px; right:40px; }
-  .id-card-logo{height:40px;width:auto;display:inline-block;position:relative;}
+  .id-card-logo-wrap::before{ width:36px; height:36px; top:-16px; right:20px; }
+  .id-card-logo-wrap::after{ width:24px; height:24px; top:-9px; right:50px; }
+  .id-card-logo{height:54px;width:auto;display:inline-block;position:relative;}
   .id-card-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 0;}
   .id-card-label{font-size:.62rem;color:rgba(255,255,255,.62);font-weight:700;white-space:nowrap;}
   .id-card-value{font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis;}
@@ -126,7 +133,7 @@
     display:flex;align-items:center;justify-content:center;font-size:1.3rem;
   }
 
-  .qr-hint{text-align:center;font-size:.78rem;color:var(--text-muted);margin:8px 0 0;}
+  .qr-hint{text-align:center;font-size:.78rem;color:var(--text-muted);margin:8px 0 14px;}
   .no-animate, .no-animate *{animation:none !important;}
   @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
@@ -147,21 +154,26 @@
           <select id="studentStage" required>
             <option value="" disabled selected>اختر المرحلة</option>
             <optgroup label="ابتدائي">
-              <option>الأول ابتدائي</option><option>الثاني ابتدائي</option>
-              <option>الثالث ابتدائي</option><option>الرابع ابتدائي</option>
-              <option>الخامس ابتدائي</option><option>السادس ابتدائي</option>
+              <option>أول ابتدائي</option><option>ثاني ابتدائي</option>
+              <option>ثالث ابتدائي</option><option>رابع ابتدائي</option>
+              <option>خامس ابتدائي</option><option>سادس ابتدائي</option>
             </optgroup>
             <optgroup label="متوسط">
-              <option>الأول متوسط</option><option>الثاني متوسط</option><option>الثالث متوسط</option>
+              <option>أول متوسط</option><option>ثاني متوسط</option><option>ثالث متوسط</option>
             </optgroup>
             <optgroup label="ثانوي">
-              <option>الأول ثانوي</option><option>الثاني ثانوي</option><option>الثالث ثانوي</option>
+              <option>أول ثانوي</option><option>ثاني ثانوي</option><option>ثالث ثانوي</option>
             </optgroup>
           </select>
         </label>
         <label>
           صورة الطالب (اختياري)
-          <input type="file" id="studentImage" accept="image/*">
+          <div class="photo-source-buttons">
+            <button type="button" id="cameraBtn" class="photo-source-btn">📷 صوّر بالكاميرا</button>
+            <button type="button" id="galleryBtn" class="photo-source-btn">🖼️ اختر من المعرض</button>
+          </div>
+          <input type="file" id="studentImageCamera" accept="image/*" capture="environment" class="hidden">
+          <input type="file" id="studentImageGallery" accept="image/*" class="hidden">
         </label>
         <div id="imagePreviewWrap" class="hidden">
           <img id="imagePreview" class="image-preview" alt="معاينة الصورة">
@@ -217,7 +229,7 @@
   const CLOUDINARY_UPLOAD_PRESET = 'hawaya_upload';
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzr7krDzKy2aUOi5DLjmivn2xhqzJSkTbyF-Ygv7Z5QqaYIrRlelQztSU3OMRYT5l-lCA/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUEXbIjc4wST4cbHExjfvi50i2GtQyx3wAuJ9hk5FWtr--IaZ4Eg-0GylrhUYuKaOTmw/exec';
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
 
   // شعار هواية الصيفي (ملف خارجي مفرّغ الخلفية، بجانب index.html على GitHub)
@@ -235,19 +247,32 @@
   let currentStudentName = null;
   let lastBadgeBlob = null;
 
-  document.getElementById('studentImage').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
+  const cameraBtn = document.getElementById('cameraBtn');
+  const galleryBtn = document.getElementById('galleryBtn');
+  const cameraInput = document.getElementById('studentImageCamera');
+  const galleryInput = document.getElementById('studentImageGallery');
+
+  cameraBtn.addEventListener('click', () => cameraInput.click());
+  galleryBtn.addEventListener('click', () => galleryInput.click());
+
+  async function handleImageSelected(file, sourceBtn) {
     const wrap = document.getElementById('imagePreviewWrap');
+    cameraBtn.classList.remove('active');
+    galleryBtn.classList.remove('active');
     if (!file) { compressedImageBase64 = null; wrap.classList.add('hidden'); return; }
     try {
       compressedImageBase64 = await compressImage(file, 800, 0.7);
       document.getElementById('imagePreview').src = 'data:image/jpeg;base64,' + compressedImageBase64;
       wrap.classList.remove('hidden');
+      if (sourceBtn) sourceBtn.classList.add('active');
     } catch (err) {
       errorMsg.textContent = 'تعذر تحميل الصورة، يمكنك المتابعة بدونها';
       compressedImageBase64 = null; wrap.classList.add('hidden');
     }
-  });
+  }
+
+  cameraInput.addEventListener('change', (e) => handleImageSelected(e.target.files[0], cameraBtn));
+  galleryInput.addEventListener('change', (e) => handleImageSelected(e.target.files[0], galleryBtn));
 
   function compressImage(file, maxDim, quality) {
     return new Promise((resolve, reject) => {
@@ -418,6 +443,12 @@
     document.getElementById('confirmActions').classList.remove('hidden');
     document.getElementById('finalActions').classList.add('hidden');
     document.getElementById('badgeStatus').style.display = 'none';
+
+    // مهم: تصفير حالة زر التأكيد — وإلا يبقى معطّلًا بنص "جاري التأكيد..."
+    // من التسجيل السابق الناجح (الزر ما كان يرجع لحالته الطبيعية بعد النجاح)
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '✅ تأكيد وتسجيل الطالب';
   }
 
   document.getElementById('backBtn').addEventListener('click', () => {
@@ -539,9 +570,30 @@
     });
   }
 
+  /**
+   * نتأكد إن خط Almarai (المستخدم لكل نصوص البطاقة العربية) محمّل فعليًا
+   * قبل التصوير. بدون هذا، أحيانًا يصوّر html2canvas النص بخط النظام
+   * الاحتياطي (لأن الخط المخصص لسا ما اكتمل تحميله)، وخط النظام
+   * الاحتياطي على بعض الأجهزة لا يربط الحروف العربية بشكل صحيح،
+   * فيطلع النص متباعد/متشوّش. لها حد أقصى 2 ثانية حتى لا نتعلق.
+   */
+  function ensureFontsLoaded() {
+    if (!document.fonts) return Promise.resolve();
+    return withTimeout(
+      Promise.all([
+        document.fonts.load('800 16px Almarai'),
+        document.fonts.load('700 16px Almarai'),
+        document.fonts.load('400 16px Almarai')
+      ]).then(() => document.fonts.ready),
+      2000,
+      'مهلة تحميل الخط'
+    ).catch(() => {});
+  }
+
   async function renderBadgeCanvas() {
     const badgeCard = document.getElementById('badgeCard');
     badgeCard.classList.add('no-animate');
+    await ensureFontsLoaded();
     // ملاحظة: استخدمنا setTimeout بدل requestAnimationFrame لأن rAF يتوقف كليًا
     // لو الصفحة صارت بالخلفية (قفل شاشة/تبديل تطبيق) على الجوال، فيعلّق العملية للأبد
     await new Promise((resolve) => setTimeout(resolve, 80));
@@ -585,6 +637,7 @@
     form.reset();
     compressedImageBase64 = null; currentStudentId = null; currentStudentName = null; lastBadgeBlob = null;
     document.getElementById('imagePreviewWrap').classList.add('hidden');
+    cameraBtn.classList.remove('active'); galleryBtn.classList.remove('active');
     submitBtn.disabled = false; submitBtn.textContent = 'تسجيل الطالب';
     successView.classList.add('hidden');
     formView.classList.remove('hidden');
