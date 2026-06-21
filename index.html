@@ -105,7 +105,7 @@
 
   /* الشعار يُعرض مباشرة بخلفيته الخاصة (ملف بخلفية واضحة)، بدون إطار إضافي */
   .id-card-logo-wrap{
-    display:inline-block;margin:2px 0 10px 0;line-height:0;
+    display:inline-block;margin:0 0 6px 0;line-height:0;
     border-radius:10px;overflow:hidden;
   }
   .id-card-logo{height:54px;width:auto;display:inline-block;}
@@ -115,23 +115,24 @@
 
   /* الاسم كعنوان منفصل أكبر وأبرز من باقي المعلومات */
   .id-card-name{
-    font-family:'Almarai', sans-serif;font-size:1.18rem;font-weight:800;
-    color:#fff;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-family:'Almarai', sans-serif;font-weight:800;
+    color:#fff;margin-bottom:5px;white-space:nowrap;overflow:hidden;
   }
-  /* المعلومات الثلاثة (الصف فوق، ID و PIN جنب بعض تحته، كل وحدة بسطر واحد) */
-  .id-card-details-box{
-    padding:4px 0 0;
-  }
-  .id-card-details-box .id-card-value{color:#1F1738;}
-  .id-card-details-box .id-card-label{color:#1F1738;opacity:.75;}
+  /* المعلومات الثلاثة (الصف فوق، ID و PIN جنب بعض تحته) — ألوان فاتحة
+     مستوحاة من الشعار، كل قيمة بلون مختلف لإحساس "متعدد الألوان" بدون
+     استخدام تدرّج فعلي على النص (قد لا ينرسم صحيح وقت تصوير البطاقة) */
   .id-card-stage{
     font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;
-    color:#1F1738;padding:1px 0;overflow:hidden;text-overflow:ellipsis;
+    color:#8FB4E8;padding:1px 0;overflow:hidden;text-overflow:ellipsis;
   }
   .id-card-pair-row{display:flex;gap:18px;margin-top:6px;justify-content:flex-start;}
   .id-card-pair-item{display:flex;align-items:baseline;gap:5px;min-width:0;}
-  .id-card-pair-item .id-card-label{white-space:nowrap;}
-  .id-card-pair-item .id-card-value{white-space:nowrap;}
+  .id-card-pair-item .id-card-label{white-space:nowrap;font-weight:700;}
+  .id-card-pair-item .id-card-value{white-space:nowrap;font-family:'Almarai', sans-serif;font-weight:800;}
+  .id-card-pair-item:nth-child(1) .id-card-label,
+  .id-card-pair-item:nth-child(1) .id-card-value{color:#C9A6E0;}
+  .id-card-pair-item:nth-child(2) .id-card-label,
+  .id-card-pair-item:nth-child(2) .id-card-value{color:#F7A8C4;}
 
   /* عنصر واحد فقط للصورة (بدل صورة + مكان فاضي منفصلين) لمنع ظهور الاثنين معًا بالغلط */
   .id-card-visual{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;position:relative;z-index:1;}
@@ -415,6 +416,22 @@
    * لتفادي ظهور الصورة والمكان الفاضي معًا بالغلط. تنتظر تحميل الصورة فعليًا
    * (بحد أقصى 4 ثواني) قبل أي تصوير للبطاقة.
    */
+  /**
+   * يكتب اسم الطالب بالبطاقة، ويصغّر حجم الخط تلقائيًا تدريجيًا لو الاسم
+   * طويل وما يناسب العرض المتاح بسطر واحد — بدل قصّه بـ "...".
+   */
+  function setCardNameFitted(name) {
+    const el = document.getElementById('cardName');
+    const maxSize = 1.18, minSize = 0.72, step = 0.04;
+    el.textContent = name;
+    let size = maxSize;
+    el.style.fontSize = size + 'rem';
+    while (el.scrollWidth > el.clientWidth && size > minSize) {
+      size -= step;
+      el.style.fontSize = size.toFixed(2) + 'rem';
+    }
+  }
+
   function setPhotoBox(url) {
     const photoBox = document.getElementById('photoBox');
     return new Promise((resolve) => {
@@ -445,7 +462,7 @@
 
     document.getElementById('successHeading').textContent = 'معاينة البطاقة';
     document.getElementById('successName').textContent = data.name;
-    document.getElementById('cardName').textContent = data.name;
+    setCardNameFitted(data.name);
     document.getElementById('cardStage').textContent = data.stage || '';
     document.getElementById('badgeId').textContent = data.id;
     document.getElementById('badgePw').textContent = data.password;
