@@ -6,6 +6,12 @@
 <title>مشرف هواية</title>
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#352868">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="مشرف هواية">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
@@ -56,6 +62,42 @@
     color:#fff;font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:.82rem;
   }
   .btn-secondary{background:#F3F0FA;color:var(--indigo);box-shadow:none;margin-top:10px;}
+
+  /* زر تثبيت التطبيق */
+  .install-btn{
+    display:block;width:fit-content;margin:0 auto 14px;
+    padding:9px 18px;border-radius:999px;border:none;
+    background:#F3F0FA;color:var(--indigo);
+    font-family:'Almarai', sans-serif;font-weight:700;font-size:.82rem;
+    box-shadow:none;cursor:pointer;
+  }
+  .install-btn:active{transform:translateY(1px) scale(.99);}
+
+  /* نافذة شرح التثبيت على آيفون */
+  .ios-install-overlay{
+    position:fixed;inset:0;background:rgba(43,38,64,.55);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;z-index:50;
+  }
+  .ios-install-card{
+    background:#fff;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;
+    box-shadow:0 18px 50px -12px rgba(53,40,104,.35);
+  }
+  .ios-install-card h3{
+    font-family:'Baloo Bhaijaan 2', sans-serif;font-size:1.1rem;color:var(--indigo);
+    text-align:center;margin:0 0 16px;
+  }
+  .ios-install-card p{
+    font-size:.92rem;color:var(--text);margin:0 0 12px;line-height:1.6;
+    display:flex;align-items:flex-start;gap:8px;
+  }
+  .ios-step-num{
+    flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--violet);color:#fff;font-size:.75rem;font-weight:700;
+  }
+  .ios-share-icon{font-size:1rem;}
+  .ios-install-card button{margin-top:8px;}
   h1{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.5rem;color:var(--indigo);text-align:center;margin:0 0 6px;}
   .subtitle{text-align:center;color:var(--text-muted);font-size:.92rem;margin:0 0 24px;}
   label{display:block;font-size:.88rem;font-weight:700;color:var(--indigo);margin-bottom:16px;}
@@ -115,8 +157,8 @@
 
   /* الاسم كعنوان منفصل أكبر وأبرز من باقي المعلومات */
   .id-card-name{
-    font-family:'Almarai', sans-serif;font-weight:800;
-    color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;
+    font-family:'Almarai', sans-serif;font-weight:800;font-size:1.1rem;
+    color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   /* المعلومات الثلاثة (الصف فوق، ID و PIN جنب بعض تحته) — كحلي غامق واحد */
   .id-card-stage{
@@ -148,7 +190,18 @@
 <div class="page">
   <div class="card">
     <img class="logo app-logo" alt="هواية الصيفي">
+    <button type="button" id="installBtn" class="install-btn hidden">📲 ثبّت التطبيق على جوالك</button>
     <div class="welcome-pill">أهلًا بك، يا مشرف هواية ✨</div>
+
+    <div id="iosInstallOverlay" class="ios-install-overlay hidden">
+      <div class="ios-install-card">
+        <h3>📱 تثبيت التطبيق على آيفون</h3>
+        <p><span class="ios-step-num">1</span> اضغط زر المشاركة <span class="ios-share-icon">⬆️</span> بالأسفل بمتصفح Safari</p>
+        <p><span class="ios-step-num">2</span> دوّر لتحت واختر <b>"إضافة إلى الشاشة الرئيسية"</b></p>
+        <p><span class="ios-step-num">3</span> اضغط <b>"إضافة"</b> فوق يمين الشاشة</p>
+        <button type="button" id="closeIosHint" class="btn-secondary">حسنًا، فهمت</button>
+      </div>
+    </div>
 
     <div id="formView">
       <h1>تسجيل طالب جديد</h1>
@@ -251,6 +304,43 @@
   // شعار هواية الصيفي (ملف خارجي مفرّغ الخلفية، بجانب index.html على GitHub)
   const LOGO_SRC = 'logo.png';
   document.querySelectorAll('.app-logo').forEach((img) => { img.src = LOGO_SRC; });
+
+  /**
+   * زر تثبيت التطبيق: بالأندرويد/كروم نستخدم نافذة التثبيت التلقائية
+   * (beforeinstallprompt). بالآيفون/سفاري ما تدعم آبل هذا إطلاقًا، فنعرض
+   * شرح بالخطوات اليدوية بدالها. الزر يظهر فقط لو التثبيت ممكن أصلًا،
+   * وما يظهر إذا كان التطبيق مثبّت ومفتوح بالفعل (standalone).
+   */
+  const installBtn = document.getElementById('installBtn');
+  const iosInstallOverlay = document.getElementById('iosInstallOverlay');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  let deferredInstallPrompt = null;
+
+  if (!isStandalone && isIOS) {
+    installBtn.classList.remove('hidden');
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!isStandalone) installBtn.classList.remove('hidden');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installBtn.classList.add('hidden');
+    } else if (isIOS) {
+      iosInstallOverlay.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('closeIosHint').addEventListener('click', () => {
+    iosInstallOverlay.classList.add('hidden');
+  });
 
   const form = document.getElementById('registerForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -410,22 +500,6 @@
    * لتفادي ظهور الصورة والمكان الفاضي معًا بالغلط. تنتظر تحميل الصورة فعليًا
    * (بحد أقصى 4 ثواني) قبل أي تصوير للبطاقة.
    */
-  /**
-   * يكتب اسم الطالب بالبطاقة، ويصغّر حجم الخط تلقائيًا تدريجيًا لو الاسم
-   * طويل وما يناسب العرض المتاح بسطر واحد — بدل قصّه بـ "...".
-   */
-  function setCardNameFitted(name) {
-    const el = document.getElementById('cardName');
-    const maxSize = 1.18, minSize = 0.72, step = 0.04;
-    el.textContent = name;
-    let size = maxSize;
-    el.style.fontSize = size + 'rem';
-    while (el.scrollWidth > el.clientWidth && size > minSize) {
-      size -= step;
-      el.style.fontSize = size.toFixed(2) + 'rem';
-    }
-  }
-
   function setPhotoBox(url) {
     const photoBox = document.getElementById('photoBox');
     return new Promise((resolve) => {
@@ -470,10 +544,6 @@
 
     formView.classList.add('hidden');
     successView.classList.remove('hidden');
-
-    // مهم: تصغير خط الاسم يصير بعد ظهور البطاقة فعليًا على الشاشة، وإلا
-    // عرض العنصر المقاس = صفر (لأنه كان مخفيًا) ويفشل الحساب بالكامل
-    setCardNameFitted(data.name);
 
     document.getElementById('confirmErrorMsg').textContent = '';
     document.getElementById('confirmActions').classList.remove('hidden');
