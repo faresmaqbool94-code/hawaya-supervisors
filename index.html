@@ -118,15 +118,21 @@
     font-family:'Almarai', sans-serif;font-size:1.18rem;font-weight:800;
     color:#fff;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  /* صندوق المعلومات الثلاثة (ID، الصف، الرقم السري) */
+  /* صندوق المعلومات الثلاثة (الصف فوق، ID و PIN جنب بعض تحته)
+     خلفية فاتحة + نص كحلي من ألوان الشعار = تباين قوي وواضح */
   .id-card-details-box{
-    background:rgba(255,255,255,.14);border-radius:12px;padding:8px 12px;
+    background:rgba(255,255,255,.92);border-radius:12px;padding:8px 12px;
   }
-  .id-card-details-box .id-card-value{color:var(--sun);}
+  .id-card-details-box .id-card-value{color:var(--indigo);}
+  .id-card-details-box .id-card-label{color:var(--violet);}
   .id-card-stage{
     font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;
-    color:var(--sun);padding:1px 0;overflow:hidden;text-overflow:ellipsis;
+    color:var(--indigo);padding:1px 0;overflow:hidden;text-overflow:ellipsis;
   }
+  .id-card-pair-row{display:flex;gap:10px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(53,40,104,.18);}
+  .id-card-pair-item{flex:1;text-align:center;min-width:0;}
+  .id-card-pair-item .id-card-label{display:block;margin-bottom:2px;}
+  .id-card-pair-item .id-card-value{display:block;}
 
   /* عنصر واحد فقط للصورة (بدل صورة + مكان فاضي منفصلين) لمنع ظهور الاثنين معًا بالغلط */
   .id-card-visual{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;position:relative;z-index:1;}
@@ -199,9 +205,17 @@
           <div class="id-card-logo-wrap"><img class="id-card-logo app-logo" alt="هواية الصيفي"></div>
           <div class="id-card-name" id="cardName"></div>
           <div class="id-card-details-box">
-            <div class="id-card-row"><span class="id-card-value" id="badgeId"></span><span class="id-card-label">ID</span></div>
             <div class="id-card-stage" id="cardStage"></div>
-            <div class="id-card-row"><span class="id-card-value" id="badgePw"></span><span class="id-card-label">الرقم السري</span></div>
+            <div class="id-card-pair-row">
+              <div class="id-card-pair-item">
+                <span class="id-card-label">ID</span>
+                <span class="id-card-value" id="badgeId"></span>
+              </div>
+              <div class="id-card-pair-item">
+                <span class="id-card-label">PIN</span>
+                <span class="id-card-value" id="badgePw"></span>
+              </div>
+            </div>
           </div>
         </div>
         <div class="id-card-visual">
