@@ -103,21 +103,12 @@
 
   .id-card-info{flex:1;min-width:0;text-align:right;position:relative;z-index:1;}
 
-  /* إطار الشعار بشكل غيمة: قاعدة كبسولة + دائرتين فوق لتكوين نتوءات الغيمة */
+  /* الشعار يُعرض مباشرة بخلفيته الخاصة (ملف بخلفية واضحة)، بدون إطار إضافي */
   .id-card-logo-wrap{
-    position:relative;display:inline-block;margin:2px 0 10px 0;line-height:0;
-    background:rgba(255,255,255,.62);
-    border-radius:999px;
-    padding:12px 24px;
+    display:inline-block;margin:2px 0 10px 0;line-height:0;
+    border-radius:10px;overflow:hidden;
   }
-  .id-card-logo-wrap::before,
-  .id-card-logo-wrap::after{
-    content:"";position:absolute;border-radius:50%;
-    background:rgba(255,255,255,.62);
-  }
-  .id-card-logo-wrap::before{ width:36px; height:36px; top:-16px; right:20px; }
-  .id-card-logo-wrap::after{ width:24px; height:24px; top:-9px; right:50px; }
-  .id-card-logo{height:54px;width:auto;display:inline-block;position:relative;}
+  .id-card-logo{height:54px;width:auto;display:inline-block;}
   .id-card-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 0;}
   .id-card-label{font-size:.62rem;color:rgba(255,255,255,.62);font-weight:700;white-space:nowrap;}
   .id-card-value{font-family:'Almarai', sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis;}
@@ -530,12 +521,11 @@
     }
   }
 
-  /** يصوّر البطاقة ويرفعها ويخزّن رابطها بالشيت — يجري بالخلفية بدون إيقاف المستخدم */
+  /** يصوّر البطاقة ويرفعها ويخزّن رابطها بالشيت — يجري بالخلفية تمامًا وبصمت،
+   *  وما يظهر شي على الشاشة إلا لو حصل خطأ فعلي يحتاج انتباه المشرف */
   function startBadgeBackgroundSave(data) {
     const badgeStatus = document.getElementById('badgeStatus');
-    badgeStatus.style.color = 'var(--text-muted)';
-    badgeStatus.textContent = '⏳ جاري حفظ نسخة البطاقة بالخلفية...';
-    badgeStatus.style.display = 'block';
+    badgeStatus.style.display = 'none';
 
     setPhotoBox(data.imageUrl)
       .then(() => withTimeout(saveBadge(), 20000, 'انتهت المهلة (20 ثانية) — تحقق من الاتصال بالإنترنت'))
