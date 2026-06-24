@@ -172,8 +172,15 @@
 
   /* ===================== هيكل التطبيق الجديد (تبويبات) ===================== */
   #appView{min-height:100vh;display:flex;flex-direction:column;}
-  .app-header{padding:14px 18px 6px;text-align:right;}
+  .app-header{
+    padding:14px 18px 6px;display:flex;align-items:center;justify-content:space-between;
+  }
   .header-logo{height:48px;width:auto;display:inline-block;}
+  .header-back-btn{
+    width:auto;background:none;border:none;box-shadow:none;color:var(--indigo);
+    font-size:1.7rem;line-height:1;padding:4px 10px;cursor:pointer;
+  }
+  .header-back-btn:active{transform:translateY(1px);}
 
   .pages-viewport{flex:1;position:relative;overflow:hidden;}
   .page-panel{
@@ -249,6 +256,7 @@
     border-radius:14px;padding:10px;margin-bottom:14px;font-weight:800;
   }
   .pending-box .icon-btn{padding:4px 8px;font-size:.8rem;}
+  #customAmountInput, #bulkCustomAmountInput{margin-bottom:14px;text-align:center;}
 
   .balance-row{cursor:pointer;}
 
@@ -270,7 +278,10 @@
 <body>
 
 <div id="appView">
-  <div class="app-header"><img class="app-logo header-logo" alt="هواية"></div>
+  <div class="app-header">
+    <img id="headerLogoImg" class="header-logo" alt="هواية">
+    <button type="button" id="headerBackBtn" class="header-back-btn hidden" aria-label="رجوع">←</button>
+  </div>
 
   <!-- نافذة شرح التثبيت على آيفون (مشتركة بكل التبويبات) -->
   <div id="iosInstallOverlay" class="ios-install-overlay hidden">
@@ -452,6 +463,7 @@
             </select>
           </label>
 
+          <button type="button" id="selectAllBtn" class="btn-secondary hidden">☑️ تحديد الكل</button>
           <div id="balanceStudentsList" style="margin-top:6px;">
             <p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>
           </div>
@@ -461,7 +473,6 @@
 
       <!-- تفاصيل طالب واحد -->
       <div id="balanceDetailView" class="hidden">
-        <button type="button" id="balanceBackBtn" class="btn-secondary" style="margin-bottom:14px;">↩️ رجوع للقائمة</button>
 
         <div class="card">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
@@ -474,7 +485,7 @@
           <div class="balance-display" id="detailBalance">0</div>
 
           <button type="button" id="manualAttendanceBtn" class="btn-secondary" style="margin-bottom:14px;">✅ تسجيل حضور الآن</button>
-          <p class="error" id="attendanceMsg" style="color:var(--success);"></p>
+          <p class="error" id="attendanceMsg" style="color:var(--success);margin-bottom:18px;"></p>
 
           <div class="amount-selector">
             <button type="button" class="amount-chip" data-amount="10">+10</button>
@@ -483,6 +494,7 @@
             <button type="button" class="amount-chip" id="customPlusBtn">+</button>
             <button type="button" class="amount-chip" id="customMinusBtn">−</button>
           </div>
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="customAmountInput" class="hidden" placeholder="أدخل عدد النقاط">
 
           <div id="pendingAmountBox" class="pending-box hidden">
             <span>المبلغ المحدد:</span>
@@ -520,6 +532,7 @@
       <button type="button" class="amount-chip" id="bulkCustomPlusBtn">+</button>
       <button type="button" class="amount-chip" id="bulkCustomMinusBtn">−</button>
     </div>
+    <input type="number" inputmode="numeric" pattern="[0-9]*" id="bulkCustomAmountInput" class="hidden" placeholder="أدخل عدد النقاط">
     <div id="bulkPendingAmountBox" class="pending-box hidden">
       <span id="bulkPendingAmountText"></span>
     </div>
@@ -540,6 +553,10 @@
 
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
   const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/hawaya-student/';
+
+  // شعار شريط الهيدر فقط — مستقل عن شعار "هواية" المستخدم بالبطاقة وشاشة الترحيب
+  const HEADER_LOGO_SRC = 'delet.png';
+  document.getElementById('headerLogoImg').src = HEADER_LOGO_SRC;
 
   // شعار هواية (ملف خارجي مفرّغ الخلفية، بجانب index.html على GitHub)
   const LOGO_SRC = 'logo.png';
@@ -619,6 +636,7 @@
 
     currentIndex = newIndex;
     navButtons.forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.index) === newIndex));
+    document.getElementById('headerBackBtn').classList.add('hidden'); // مفيد فقط داخل تفاصيل طالب برصيد الطلاب
 
     // تحميل بيانات الإدارة أول ما يُفتح هذا التبويب لأول مرة
     if (newIndex === 1 && !managementLoaded) {
@@ -1345,6 +1363,7 @@
     if (!stage && !query) {
       listEl.innerHTML = '<p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>';
       allLoadedStudents = [];
+      document.getElementById('selectAllBtn').classList.add('hidden');
       return;
     }
 
@@ -1358,11 +1377,29 @@
     renderBalanceStudentsList(filtered);
   }
 
+  function updateSelectAllBtn() {
+    const btn = document.getElementById('selectAllBtn');
+    if (!allLoadedStudents.length) { btn.classList.add('hidden'); return; }
+    btn.classList.remove('hidden');
+    const allSelected = allLoadedStudents.every((s) => selectedBulkIds.has(s.id));
+    btn.textContent = allSelected ? '⬜ إلغاء تحديد الكل' : '☑️ تحديد الكل (' + allLoadedStudents.length + ')';
+  }
+
+  document.getElementById('selectAllBtn').addEventListener('click', () => {
+    const allSelected = allLoadedStudents.length > 0 && allLoadedStudents.every((s) => selectedBulkIds.has(s.id));
+    allLoadedStudents.forEach((s) => {
+      if (allSelected) selectedBulkIds.delete(s.id); else selectedBulkIds.add(s.id);
+    });
+    renderBalanceStudentsList(allLoadedStudents);
+    updateBulkBar();
+  });
+
   function renderBalanceStudentsList(students) {
     allLoadedStudents = students || [];
     const listEl = document.getElementById('balanceStudentsList');
     if (!students || !students.length) {
       listEl.innerHTML = '<p class="list-empty">لا يوجد طلاب مطابقين</p>';
+      document.getElementById('selectAllBtn').classList.add('hidden');
       return;
     }
     listEl.innerHTML = students.map((s) => `
@@ -1382,11 +1419,14 @@
         const id = e.target.dataset.selectId;
         if (e.target.checked) selectedBulkIds.add(id); else selectedBulkIds.delete(id);
         updateBulkBar();
+        updateSelectAllBtn();
       });
     });
     listEl.querySelectorAll('[data-open-detail]').forEach((row) => {
       row.addEventListener('click', () => openStudentDetail(row.dataset.openDetail));
     });
+
+    updateSelectAllBtn();
   }
 
   document.getElementById('balanceSearchInput').addEventListener('input', filterAndRenderBalanceStudents);
@@ -1400,6 +1440,7 @@
     selectedStudentId = id;
     pendingAmount = null;
     updatePendingDisplay();
+    document.getElementById('customAmountInput').classList.add('hidden');
 
     document.getElementById('detailName').textContent = student.name;
     document.getElementById('detailStage').textContent = student.stage;
@@ -1411,13 +1452,15 @@
 
     document.getElementById('balanceListView').classList.add('hidden');
     document.getElementById('balanceDetailView').classList.remove('hidden');
+    document.getElementById('headerBackBtn').classList.remove('hidden');
 
     loadPointsLog(id);
   }
 
-  document.getElementById('balanceBackBtn').addEventListener('click', () => {
+  document.getElementById('headerBackBtn').addEventListener('click', () => {
     document.getElementById('balanceDetailView').classList.add('hidden');
     document.getElementById('balanceListView').classList.remove('hidden');
+    document.getElementById('headerBackBtn').classList.add('hidden');
     selectedStudentId = null;
     filterAndRenderBalanceStudents(); // تحديث الأرصدة المعروضة بالقائمة فورًا بعد أي تعديل
   });
@@ -1441,7 +1484,7 @@
           const masterIdx = allStudentsCache.findIndex((s) => s.id === selectedStudentId);
           if (masterIdx !== -1) allStudentsCache[masterIdx].balance = data.student.balance;
         }
-        loadPointsLog(selectedStudentId);
+        loadPointsLog(selectedStudentId, true);
       } else {
         msgEl.style.color = 'var(--error)';
         msgEl.textContent = data.error || 'تعذر تسجيل الحضور';
@@ -1451,6 +1494,8 @@
       msgEl.textContent = 'حدث خطأ في الاتصال';
     } finally {
       btn.disabled = false; btn.textContent = '✅ تسجيل حضور الآن';
+      clearTimeout(window.__attendanceMsgTimer);
+      window.__attendanceMsgTimer = setTimeout(() => { msgEl.textContent = ''; }, 3500);
     }
   });
 
@@ -1472,23 +1517,35 @@
   document.querySelectorAll('#balanceDetailView .amount-chip[data-amount]').forEach((btn) => {
     btn.addEventListener('click', () => {
       pendingAmount = Number(btn.dataset.amount);
+      document.getElementById('customAmountInput').classList.add('hidden');
       updatePendingDisplay();
     });
   });
-  document.getElementById('customPlusBtn').addEventListener('click', () => {
-    const val = prompt('أدخل عدد النقاط المراد إضافتها:');
-    if (val === null) return;
-    const num = Number(val);
-    if (!isNaN(num) && num > 0) { pendingAmount = num; updatePendingDisplay(); }
+  const customAmountInput = document.getElementById('customAmountInput');
+  let customSign = 1;
+
+  function openCustomAmountInput(sign) {
+    customSign = sign;
+    customAmountInput.classList.remove('hidden');
+    customAmountInput.value = '';
+    customAmountInput.focus();
+    pendingAmount = null;
+    updatePendingDisplay();
+  }
+
+  document.getElementById('customPlusBtn').addEventListener('click', () => openCustomAmountInput(1));
+  document.getElementById('customMinusBtn').addEventListener('click', () => openCustomAmountInput(-1));
+
+  customAmountInput.addEventListener('input', () => {
+    customAmountInput.value = customAmountInput.value.replace(/[^0-9]/g, ''); // أرقام فقط
+    const num = Number(customAmountInput.value);
+    pendingAmount = (customAmountInput.value === '' || isNaN(num) || num <= 0) ? null : customSign * num;
+    updatePendingDisplay();
   });
-  document.getElementById('customMinusBtn').addEventListener('click', () => {
-    const val = prompt('أدخل عدد النقاط المراد طرحها:');
-    if (val === null) return;
-    const num = Number(val);
-    if (!isNaN(num) && num > 0) { pendingAmount = -num; updatePendingDisplay(); }
-  });
+
   document.getElementById('clearPendingBtn').addEventListener('click', () => {
     pendingAmount = null; updatePendingDisplay();
+    customAmountInput.classList.add('hidden');
   });
 
   document.getElementById('confirmAdjustBtn').addEventListener('click', async () => {
@@ -1510,7 +1567,7 @@
 
       pendingAmount = null;
       updatePendingDisplay();
-      loadPointsLog(selectedStudentId);
+      loadPointsLog(selectedStudentId, true);
     } catch (_) {
       errEl.textContent = 'حدث خطأ في الاتصال';
     } finally {
@@ -1518,19 +1575,36 @@
     }
   });
 
-  async function loadPointsLog(id) {
+  // ذاكرة مؤقتة لسجل عمليات كل طالب (نفس فكرة allStudentsCache) — تفتح سجل
+  // طالب شُوهد قبل فورًا من الذاكرة بدون انتظار، وتتحدث فقط بعد تعديل جديد
+  // فعلي على رصيده (forceRefresh=true)، وإلا تبقى صالحة بدون أي طلب إضافي.
+  let pointsLogCache = {};
+
+  function renderPointsLog(log) {
     const wrap = document.getElementById('pointsLogList');
+    if (!log || !log.length) { wrap.innerHTML = '<p class="list-empty">لا توجد عمليات مسجلة بعد</p>'; return; }
+    wrap.innerHTML = log.map((entry) => `
+      <div class="log-row">
+        <span class="log-date">${entry.date}</span>
+        <span class="log-amount" style="color:${entry.amount > 0 ? 'var(--success)' : 'var(--error)'}">${entry.amount > 0 ? '+' : ''}${entry.amount}</span>
+      </div>
+    `).join('');
+  }
+
+  async function loadPointsLog(id, forceRefresh) {
+    const wrap = document.getElementById('pointsLogList');
+
+    if (!forceRefresh && pointsLogCache[id]) {
+      renderPointsLog(pointsLogCache[id]);
+      return;
+    }
+
     wrap.innerHTML = '<p class="list-empty">جاري التحميل...</p>';
     try {
       const data = await callAppsScript({ action: 'getPointsLog', id: id });
       const log = data.success ? data.log : [];
-      if (!log.length) { wrap.innerHTML = '<p class="list-empty">لا توجد عمليات مسجلة بعد</p>'; return; }
-      wrap.innerHTML = log.map((entry) => `
-        <div class="log-row">
-          <span class="log-date">${entry.date}</span>
-          <span class="log-amount" style="color:${entry.amount > 0 ? 'var(--success)' : 'var(--error)'}">${entry.amount > 0 ? '+' : ''}${entry.amount}</span>
-        </div>
-      `).join('');
+      pointsLogCache[id] = log;
+      renderPointsLog(log);
     } catch (_) {
       wrap.innerHTML = '<p class="list-empty">تعذر تحميل السجل</p>';
     }
@@ -1544,6 +1618,7 @@
       bar.classList.add('hidden');
       bulkPendingAmount = null;
       updateBulkPendingDisplay();
+      document.getElementById('bulkCustomAmountInput').classList.add('hidden');
       return;
     }
     bar.classList.remove('hidden');
@@ -1553,20 +1628,31 @@
   document.querySelectorAll('#bulkActionBar .amount-chip[data-bulk-amount]').forEach((btn) => {
     btn.addEventListener('click', () => {
       bulkPendingAmount = Number(btn.dataset.bulkAmount);
+      document.getElementById('bulkCustomAmountInput').classList.add('hidden');
       updateBulkPendingDisplay();
     });
   });
-  document.getElementById('bulkCustomPlusBtn').addEventListener('click', () => {
-    const val = prompt('أدخل عدد النقاط المراد إضافتها للكل المحدد:');
-    if (val === null) return;
-    const num = Number(val);
-    if (!isNaN(num) && num > 0) { bulkPendingAmount = num; updateBulkPendingDisplay(); }
-  });
-  document.getElementById('bulkCustomMinusBtn').addEventListener('click', () => {
-    const val = prompt('أدخل عدد النقاط المراد طرحها من الكل المحدد:');
-    if (val === null) return;
-    const num = Number(val);
-    if (!isNaN(num) && num > 0) { bulkPendingAmount = -num; updateBulkPendingDisplay(); }
+
+  const bulkCustomAmountInput = document.getElementById('bulkCustomAmountInput');
+  let bulkCustomSign = 1;
+
+  function openBulkCustomAmountInput(sign) {
+    bulkCustomSign = sign;
+    bulkCustomAmountInput.classList.remove('hidden');
+    bulkCustomAmountInput.value = '';
+    bulkCustomAmountInput.focus();
+    bulkPendingAmount = null;
+    updateBulkPendingDisplay();
+  }
+
+  document.getElementById('bulkCustomPlusBtn').addEventListener('click', () => openBulkCustomAmountInput(1));
+  document.getElementById('bulkCustomMinusBtn').addEventListener('click', () => openBulkCustomAmountInput(-1));
+
+  bulkCustomAmountInput.addEventListener('input', () => {
+    bulkCustomAmountInput.value = bulkCustomAmountInput.value.replace(/[^0-9]/g, '');
+    const num = Number(bulkCustomAmountInput.value);
+    bulkPendingAmount = (bulkCustomAmountInput.value === '' || isNaN(num) || num <= 0) ? null : bulkCustomSign * num;
+    updateBulkPendingDisplay();
   });
 
   function updateBulkPendingDisplay() {
