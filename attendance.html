@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محطة تسجيل الحضور - هواية الصيفي</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#2F6FBF;
+    --indigo:#352868;
+    --violet:#7C5BA6;
+    --pink:#F178A8;
+    --sun:#FFC83C;
+    --bg:#F6F4FB;
+    --card:#FFFFFF;
+    --text:#2B2640;
+    --text-muted:#79738F;
+    --error:#D1485B;
+    --success:#2E9E6C;
+    --late:#C98A1F;
+    --radius:22px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 88% -6%, rgba(255,200,60,.22), transparent 38%),
+      radial-gradient(circle at -10% 102%, rgba(124,91,166,.16), transparent 42%),
+      var(--bg);
+    font-family:'Almarai', sans-serif;color:var(--text);
+    display:flex;align-items:center;justify-content:center;padding:24px 16px;
+  }
+  .page{width:100%;max-width:560px;}
+
+  .header{text-align:center;margin-bottom:18px;}
+  .logo{height:54px;width:auto;}
+
+  .scan-card{
+    background:var(--card);border-radius:var(--radius);padding:34px 26px;
+    box-shadow:0 18px 50px -12px rgba(53,40,104,.22);text-align:center;
+  }
+  .scan-icon{font-size:3rem;margin-bottom:10px;}
+  .scan-title{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.3rem;color:var(--indigo);margin:0 0 6px;}
+  .scan-sub{color:var(--text-muted);font-size:.92rem;margin:0 0 22px;}
+
+  #scanInput{
+    width:100%;padding:16px;border-radius:14px;border:2px solid #E7E2F2;background:#FBFAFD;
+    font-family:'Almarai', sans-serif;font-size:1rem;color:var(--text);text-align:center;outline:none;
+  }
+  #scanInput:focus{border-color:var(--blue);}
+
+  .session-now{
+    margin-top:18px;display:inline-flex;align-items:center;gap:8px;
+    background:#F3F0FA;color:var(--indigo);border-radius:999px;padding:8px 18px;
+    font-size:.84rem;font-weight:700;
+  }
+
+  .counters{display:flex;gap:12px;margin-top:18px;}
+  .counter-box{
+    flex:1;background:#FBFAFD;border:2px solid #EFEAF8;border-radius:16px;padding:12px;text-align:center;
+  }
+  .counter-box .num{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:800;font-size:1.5rem;color:var(--indigo);}
+  .counter-box .lbl{font-size:.74rem;color:var(--text-muted);margin-top:2px;}
+
+  /* بطاقة النتيجة */
+  .result-card{
+    margin-top:18px;border-radius:var(--radius);padding:26px 22px;text-align:center;
+    box-shadow:0 18px 50px -12px rgba(53,40,104,.22);
+    animation:pop .35s ease;display:none;
+  }
+  .result-card.show{display:block;}
+  @keyframes pop{0%{transform:scale(.92);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .result-card.success{background:linear-gradient(135deg, #1A1430, var(--indigo) 60%, var(--success) 160%);color:#fff;}
+  .result-card.late{background:linear-gradient(135deg, #1A1430, var(--indigo) 60%, var(--late) 160%);color:#fff;}
+  .result-card.warn{background:#FFF6E8;border:2px solid #FFD976;color:#7A5400;}
+  .result-card.error{background:#FBE9ED;border:2px solid #F3B9C4;color:var(--error);}
+
+  .result-photo{
+    width:84px;height:84px;border-radius:18px;margin:0 auto 14px;background-size:cover;background-position:center;
+    background-color:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:2.2rem;
+    border:3px solid rgba(255,255,255,.55);
+  }
+  .result-card.warn .result-photo, .result-card.error .result-photo{
+    background-color:#fff;border-color:#E7E2F2;
+  }
+  .result-icon{font-size:2.4rem;margin-bottom:10px;}
+  .result-name{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.25rem;margin-bottom:4px;}
+  .result-stage{font-size:.86rem;opacity:.85;margin-bottom:14px;}
+  .result-message{font-size:1rem;font-weight:700;line-height:1.6;}
+  .result-points{
+    display:inline-block;margin-top:14px;padding:8px 20px;border-radius:999px;
+    font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:800;font-size:1.1rem;
+    background:rgba(255,255,255,.18);
+  }
+  .result-card.warn .result-points, .result-card.error .result-points{background:rgba(0,0,0,.06);}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;}}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="header"><img class="logo" id="headerLogo" alt="هواية"></div>
+
+  <div class="scan-card">
+    <div class="scan-icon">📷</div>
+    <div class="scan-title">محطة تسجيل الحضور</div>
+    <div class="scan-sub">وجّه السكانر لباركود بطاقة الطالب — التسجيل يصير تلقائيًا</div>
+
+    <input type="text" id="scanInput" placeholder="بانتظار المسح..." autocomplete="off">
+
+    <div class="session-now" id="sessionNowBadge">جاري تحديد البرنامج الحالي...</div>
+
+    <div class="counters">
+      <div class="counter-box"><div class="num" id="successCount">0</div><div class="lbl">تسجيلات ناجحة</div></div>
+      <div class="counter-box"><div class="num" id="lateCount">0</div><div class="lbl">حضور متأخر</div></div>
+    </div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-photo" id="resultPhoto">🧒</div>
+    <div class="result-name" id="resultName"></div>
+    <div class="result-stage" id="resultStage"></div>
+    <div class="result-message" id="resultMessage"></div>
+    <div class="result-points" id="resultPoints"></div>
+  </div>
+</div>
+
+<script>
+  /* مهم قبل النشر: APPS_SCRIPT_URL ولوغو الشعار logo.png بجانب هذا الملف */
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
+  document.getElementById('headerLogo').src = 'logo.png';
+
+  const scanInput = document.getElementById('scanInput');
+  const resultCard = document.getElementById('resultCard');
+  let successCount = 0;
+  let lateCount = 0;
+
+  async function callAppsScript(payload) {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  // يحدد ويعرض اسم البرنامج المفتوح حاليًا (تقريبي بالمتصفح، الفصل الفعلي يصير بالخادم)
+  function updateSessionBadge() {
+    const now = new Date();
+    const h = now.getHours(), m = now.getMinutes();
+    const total = h * 60 + m;
+    const badge = document.getElementById('sessionNowBadge');
+    if (total >= 9 * 60 && total < 11 * 60) {
+      badge.textContent = '☀️ البرنامج الصباحي مفتوح الآن (9:00 - 11:00)';
+    } else if (total >= 16 * 60 && total < 17 * 60) {
+      badge.textContent = '🌇 البرنامج المسائي مفتوح الآن (الوقت المبكر)';
+    } else if (total >= 17 * 60 && total < 19 * 60) {
+      badge.textContent = '🌆 البرنامج المسائي مفتوح الآن (حضور متأخر)';
+    } else {
+      badge.textContent = '⏸️ لا يوجد برنامج مفتوح بهذا الوقت';
+    }
+  }
+  updateSessionBadge();
+  setInterval(updateSessionBadge, 30000);
+
+  function showResult(kind, photo, name, stage, message, pointsText) {
+    resultCard.className = 'result-card show ' + kind;
+    const photoEl = document.getElementById('resultPhoto');
+    if (photo) { photoEl.style.backgroundImage = "url('" + photo + "')"; photoEl.textContent = ''; }
+    else { photoEl.style.backgroundImage = ''; photoEl.textContent = kind === 'error' ? '❓' : '🧒'; }
+
+    document.getElementById('resultName').textContent = name || '';
+    document.getElementById('resultStage').textContent = stage || '';
+    document.getElementById('resultMessage').textContent = message;
+    const pointsEl = document.getElementById('resultPoints');
+    if (pointsText) { pointsEl.textContent = pointsText; pointsEl.style.display = 'inline-block'; }
+    else { pointsEl.style.display = 'none'; }
+  }
+
+  function buildSuccessMessage(data) {
+    if (data.session === 'صباحي') {
+      return { kind: 'success', msg: 'تم تسجيل حضورك بالبرنامج الصباحي ☀️', points: '+' + data.pointsAdded + ' نقطة' };
+    }
+    if (data.tier === 'مبكر') {
+      return { kind: 'success', msg: 'تم تسجيل حضورك بالبرنامج المسائي مبكرًا ⭐', points: '+' + data.pointsAdded + ' نقطة' };
+    }
+    return { kind: 'late', msg: 'تم تسجيل حضورك بالبرنامج المسائي (متأخر) ⏰', points: '+' + data.pointsAdded + ' نقطة فقط' };
+  }
+
+  async function processScan(rawValue) {
+    const value = rawValue.trim();
+    if (!value) return;
+
+    try {
+      const data = await callAppsScript({ action: 'markAttendance', rawScan: value });
+
+      if (data.success) {
+        const built = buildSuccessMessage(data);
+        showResult(built.kind, data.student.imageUrl, data.student.name, data.student.stage, built.msg, built.points);
+        if (built.kind === 'late') { lateCount++; document.getElementById('lateCount').textContent = lateCount; }
+        else { successCount++; document.getElementById('successCount').textContent = successCount; }
+      } else if (data.alreadyMarked) {
+        showResult('warn', data.student ? data.student.imageUrl : '', data.student ? data.student.name : '',
+          data.student ? data.student.stage : '', data.error, null);
+      } else if (data.noSessionOpen) {
+        showResult('warn', '', '', '', data.error, null);
+      } else {
+        showResult('error', '', '', '', data.error || 'تعذر التعرف على الباركود، حاول مرة أخرى', null);
+      }
+    } catch (err) {
+      showResult('error', '', '', '', 'تعذر الاتصال بالخادم، تحقق من الإنترنت', null);
+    }
+
+    scanInput.value = '';
+    setTimeout(() => scanInput.focus(), 50);
+  }
+
+  // السكانر يضغط Enter تلقائيًا بعد كل مسح — هذا يغطي الحالة الافتراضية لأغلب الأجهزة
+  scanInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      processScan(scanInput.value);
+    }
+  });
+
+  // إبقاء التركيز دائمًا على الحقل، حتى لو ضغط المستخدم بأي مكان آخر بالصفحة
+  document.addEventListener('click', () => scanInput.focus());
+  window.addEventListener('load', () => scanInput.focus());
+</script>
+</body>
+</html>
