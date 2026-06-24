@@ -390,26 +390,57 @@
     <!-- ============ 1) الإدارة ============ -->
     <div class="page-panel" data-page="1">
 
-      <!-- نصيحة اليوم -->
+      <!-- النصيحة الحالية -->
       <div class="card">
-        <div class="section-title">💡 نصيحة اليوم</div>
-        <div class="section-sub">تتغيّر تلقائيًا كل يوم بالتدوير بين كل النصائح المضافة بالأسفل</div>
-
+        <div class="section-title">💡 النصيحة الحالية</div>
+        <div class="section-sub">آخر نصيحة تضيفها هي المعروضة بتطبيق الطالب فقط — النصائح القديمة تبقى محفوظة بالشيت كسجل، بدون عرضها مرة ثانية</div>
         <div class="daily-tip-preview">
-          <div class="lbl">النصيحة المعروضة اليوم بتطبيق الطالب</div>
-          <div id="dailyTipPreview">جاري التحميل...</div>
-        </div>
-
-        <form id="tipForm">
-          <label>نصيحة جديدة<input type="text" id="tipTextInput" placeholder="مثال: حافظ على حضورك اليومي..." required></label>
-          <button type="submit" id="tipSubmitBtn">➕ إضافة نصيحة</button>
-          <p class="error" id="tipFormError"></p>
-        </form>
-
-        <div id="tipsListWrap" style="margin-top:16px;">
-          <div id="tipsList"></div>
+          <div class="lbl">المعروضة الآن بتطبيق الطالب</div>
+          <div id="currentTipPreview">جاري التحميل...</div>
         </div>
       </div>
+
+      <!-- إضافة محتوى جديد -->
+      <div class="card">
+        <div class="section-title">➕ إضافة محتوى جديد</div>
+        <form id="contentForm">
+          <label>نوع المحتوى
+            <select id="contentTypeSelect">
+              <option value="إعلان">إعلان (نص + صورة اختيارية)</option>
+              <option value="نصيحة">نصيحة (نص فقط)</option>
+            </select>
+          </label>
+          <label>النص<input type="text" id="contentTextInput" placeholder="اكتب نص الإعلان أو النصيحة..." required></label>
+
+          <div id="contentImageSection">
+            <label>
+              صورة الإعلان (اختياري)
+              <div class="photo-source-buttons">
+                <button type="button" id="contentCameraBtn" class="photo-source-btn">📷 صوّر بالكاميرا</button>
+                <button type="button" id="contentGalleryBtn" class="photo-source-btn">🖼️ اختر من المعرض</button>
+              </div>
+              <input type="file" id="contentImageCamera" accept="image/*" capture="environment" class="hidden">
+              <input type="file" id="contentImageGallery" accept="image/*" class="hidden">
+            </label>
+            <div id="contentImagePreviewWrap" class="hidden">
+              <img id="contentImagePreview" class="image-preview" alt="معاينة الصورة">
+            </div>
+          </div>
+
+          <button type="submit" id="contentSubmitBtn">➕ إضافة</button>
+          <p class="error" id="contentFormError"></p>
+        </form>
+      </div>
+
+      <!-- قائمة الإعلانات -->
+      <div class="card">
+        <div class="section-title">📋 الإعلانات الحالية</div>
+        <div id="announcementsList"></div>
+      </div>
+    </div>
+
+    <!-- ============ 2) الجوائز ============ -->
+    <div class="page-panel" data-page="2">
 
       <!-- إدارة الجوائز -->
       <div class="card">
@@ -418,7 +449,7 @@
 
         <form id="rewardForm">
           <label>اسم الجائزة<input type="text" id="rewardNameInput" placeholder="مثال: بطاقة ألعاب" required></label>
-          <label>السعر (نقاط)<input type="number" id="rewardPriceInput" placeholder="مثال: 300" required></label>
+          <label>السعر (دينار)<input type="number" id="rewardPriceInput" placeholder="مثال: 300" required></label>
           <label>
             صورة الجائزة (اختياري)
             <div class="photo-source-buttons">
@@ -440,10 +471,17 @@
           <div id="rewardsList"></div>
         </div>
       </div>
+
+      <!-- طلبات الشراء -->
+      <div class="card">
+        <div class="section-title">🛍️ طلبات الشراء</div>
+        <div class="section-sub">قبول الطلب يسلّم الجائزة فعليًا للطالب، رفضه يُرجع الدينار له تلقائيًا</div>
+        <div id="purchaseRequestsList"></div>
+      </div>
     </div>
 
-    <!-- ============ 2) رصيد الطلاب ============ -->
-    <div class="page-panel" data-page="2">
+    <!-- ============ 3) رصيد الطلاب ============ -->
+    <div class="page-panel" data-page="3">
 
       <!-- القائمة (افتراضي) -->
       <div id="balanceListView">
@@ -518,8 +556,9 @@
 
   <div class="bottom-nav">
     <button class="nav-btn active" data-index="0"><span class="nav-ic">📝</span><span>التسجيل</span></button>
-    <button class="nav-btn" data-index="1"><span class="nav-ic">🛠️</span><span>الإدارة</span></button>
-    <button class="nav-btn" data-index="2"><span class="nav-ic">💰</span><span>رصيد الطلاب</span></button>
+    <button class="nav-btn" data-index="1"><span class="nav-ic">📣</span><span>الإعلانات</span></button>
+    <button class="nav-btn" data-index="2"><span class="nav-ic">🎁</span><span>الجوائز</span></button>
+    <button class="nav-btn" data-index="3"><span class="nav-ic">💰</span><span>رصيد الطلاب</span></button>
   </div>
 
   <!-- شريط الإجراء الجماعي — يظهر فقط لو فيه طلاب محددين بالقائمة -->
@@ -537,6 +576,11 @@
       <span id="bulkPendingAmountText"></span>
     </div>
     <button type="button" id="bulkConfirmBtn" disabled>✅ تأكيد للكل المحددين</button>
+  </div>
+
+  <!-- نافذة تكبير صورة الإعلان — اضغط بأي مكان للإغلاق -->
+  <div id="imageLightbox" class="ios-install-overlay hidden">
+    <img id="lightboxImg" style="max-width:100%;max-height:88vh;border-radius:16px;display:block;" src="" alt="">
   </div>
 </div>
 
@@ -638,16 +682,23 @@
     navButtons.forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.index) === newIndex));
     document.getElementById('headerBackBtn').classList.add('hidden'); // مفيد فقط داخل تفاصيل طالب برصيد الطلاب
 
-    // تحميل بيانات الإدارة أول ما يُفتح هذا التبويب لأول مرة
-    if (newIndex === 1 && !managementLoaded) {
-      managementLoaded = true;
-      loadTips();
+    // تحميل بيانات الإعلانات والنصيحة أول ما يُفتح هذا التبويب لأول مرة
+    if (newIndex === 1 && !announcementsLoaded) {
+      announcementsLoaded = true;
+      loadCurrentTip();
+      loadAnnouncements();
+    }
+
+    // تحميل الجوائز وطلبات الشراء أول ما يُفتح تبويب الجوائز لأول مرة
+    if (newIndex === 2 && !rewardsTabLoaded) {
+      rewardsTabLoaded = true;
       loadRewards();
+      loadPurchaseRequests();
     }
 
     // تحميل قائمة كل الطلاب مرة واحدة فقط أول ما يُفتح تبويب رصيد الطلاب
     // (البحث والفلترة بعد هذا يصيران محليين فورًا، بدون أي اتصال جديد بالخادم)
-    if (newIndex === 2 && !balanceTabLoaded) {
+    if (newIndex === 3 && !balanceTabLoaded) {
       balanceTabLoaded = true;
       loadAllStudentsCache();
     }
@@ -1078,83 +1129,215 @@
   });
 
   /* ====================================================================
-     تبويب "الإدارة" — نصيحة اليوم
+     تبويب "الإعلانات" — محتوى موحّد (إعلان بصورة اختيارية / نصيحة بدون صورة)
      ==================================================================== */
-  let managementLoaded = false;
+  let announcementsLoaded = false;
+  let contentImageBase64 = null;
 
-  async function loadDailyTipPreview() {
-    const el = document.getElementById('dailyTipPreview');
+  const contentTypeSelect = document.getElementById('contentTypeSelect');
+  const contentImageSection = document.getElementById('contentImageSection');
+  const contentCameraBtn = document.getElementById('contentCameraBtn');
+  const contentGalleryBtn = document.getElementById('contentGalleryBtn');
+  const contentCameraInput = document.getElementById('contentImageCamera');
+  const contentGalleryInput = document.getElementById('contentImageGallery');
+
+  function updateContentTypeUI() {
+    const isAnnouncement = contentTypeSelect.value === 'إعلان';
+    contentImageSection.classList.toggle('hidden', !isAnnouncement);
+    if (!isAnnouncement) {
+      contentImageBase64 = null;
+      document.getElementById('contentImagePreviewWrap').classList.add('hidden');
+      contentCameraBtn.classList.remove('active');
+      contentGalleryBtn.classList.remove('active');
+    }
+  }
+  contentTypeSelect.addEventListener('change', updateContentTypeUI);
+  updateContentTypeUI();
+
+  contentCameraBtn.addEventListener('click', () => contentCameraInput.click());
+  contentGalleryBtn.addEventListener('click', () => contentGalleryInput.click());
+
+  async function handleContentImageSelected(file, sourceBtn) {
+    const wrap = document.getElementById('contentImagePreviewWrap');
+    contentCameraBtn.classList.remove('active');
+    contentGalleryBtn.classList.remove('active');
+    if (!file) { contentImageBase64 = null; wrap.classList.add('hidden'); return; }
+    try {
+      contentImageBase64 = await compressImage(file, 900, 0.75);
+      document.getElementById('contentImagePreview').src = 'data:image/jpeg;base64,' + contentImageBase64;
+      wrap.classList.remove('hidden');
+      if (sourceBtn) sourceBtn.classList.add('active');
+    } catch (_) {
+      document.getElementById('contentFormError').textContent = 'تعذر تحميل الصورة، يمكنك المتابعة بدونها';
+      contentImageBase64 = null; wrap.classList.add('hidden');
+    }
+  }
+  contentCameraInput.addEventListener('change', (e) => handleContentImageSelected(e.target.files[0], contentCameraBtn));
+  contentGalleryInput.addEventListener('change', (e) => handleContentImageSelected(e.target.files[0], contentGalleryBtn));
+
+  async function loadCurrentTip() {
+    const el = document.getElementById('currentTipPreview');
     try {
       const data = await callAppsScript({ action: 'getDailyTip' });
-      el.textContent = (data.success && data.tip) ? data.tip : 'لا توجد نصائح مضافة بعد';
+      el.textContent = (data.success && data.tip) ? data.tip : 'لا توجد نصيحة مضافة بعد';
     } catch (_) {
       el.textContent = 'تعذر تحميل النصيحة الحالية';
     }
   }
 
-  function renderTipsList(tips) {
-    const wrap = document.getElementById('tipsList');
-    if (!tips || !tips.length) {
-      wrap.innerHTML = '<p class="list-empty">لا توجد نصائح مضافة بعد</p>';
+  function renderAnnouncementsList(items) {
+    const wrap = document.getElementById('announcementsList');
+    if (!items || !items.length) {
+      wrap.innerHTML = '<p class="list-empty">لا توجد إعلانات مضافة بعد</p>';
       return;
     }
-    wrap.innerHTML = tips.map((t) => `
+    wrap.innerHTML = items.map((a) => `
       <div class="list-item">
-        <div class="list-item-thumb">💡</div>
+        <div class="list-item-thumb ${a.imageUrl ? 'has-image' : ''}" ${a.imageUrl ? `data-open-image="${a.imageUrl}" style="background-image:url('${a.imageUrl}');background-size:cover;background-position:center;cursor:pointer;"` : ''}>${a.imageUrl ? '' : '📣'}</div>
         <div class="list-item-body">
-          <div class="list-item-title">${t.text}</div>
+          <div class="list-item-title">${a.text}</div>
+          <div class="list-item-sub">${a.date || ''}</div>
         </div>
         <div class="list-item-actions">
-          <button type="button" class="icon-btn danger" data-delete-tip="${t.rowIndex}">🗑️</button>
+          <button type="button" class="icon-btn danger" data-delete-announcement="${a.rowIndex}">🗑️</button>
         </div>
       </div>
     `).join('');
 
-    wrap.querySelectorAll('[data-delete-tip]').forEach((btn) => {
-      btn.addEventListener('click', () => deleteTipHandler(Number(btn.dataset.deleteTip)));
+    wrap.querySelectorAll('[data-open-image]').forEach((el) => {
+      el.addEventListener('click', () => openImageLightbox(el.dataset.openImage));
+    });
+    wrap.querySelectorAll('[data-delete-announcement]').forEach((btn) => {
+      btn.addEventListener('click', () => deleteAnnouncementHandler(Number(btn.dataset.deleteAnnouncement)));
     });
   }
 
-  async function loadTips() {
-    document.getElementById('tipsList').innerHTML = '<p class="list-empty">جاري التحميل...</p>';
-    loadDailyTipPreview();
+  async function loadAnnouncements() {
+    document.getElementById('announcementsList').innerHTML = '<p class="list-empty">جاري التحميل...</p>';
     try {
-      const data = await callAppsScript({ action: 'getTips' });
-      renderTipsList(data.success ? data.tips : []);
+      const data = await callAppsScript({ action: 'getAnnouncements' });
+      renderAnnouncementsList(data.success ? data.announcements : []);
     } catch (_) {
-      document.getElementById('tipsList').innerHTML = '<p class="list-empty">تعذر تحميل النصائح</p>';
+      document.getElementById('announcementsList').innerHTML = '<p class="list-empty">تعذر تحميل الإعلانات</p>';
     }
   }
 
-  document.getElementById('tipForm').addEventListener('submit', async (e) => {
+  document.getElementById('contentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const input = document.getElementById('tipTextInput');
-    const btn = document.getElementById('tipSubmitBtn');
-    const errEl = document.getElementById('tipFormError');
-    const text = input.value.trim();
+    const type = contentTypeSelect.value;
+    const text = document.getElementById('contentTextInput').value.trim();
+    const btn = document.getElementById('contentSubmitBtn');
+    const errEl = document.getElementById('contentFormError');
     errEl.textContent = '';
-    if (!text) { errEl.textContent = 'اكتب نص النصيحة أولًا'; return; }
+    if (!text) { errEl.textContent = 'اكتب النص أولًا'; return; }
 
     btn.disabled = true; btn.textContent = 'جاري الإضافة...';
     try {
-      const result = await callAppsScript({ action: 'addTip', text: text });
-      if (!result.success) { errEl.textContent = result.error || 'تعذر إضافة النصيحة'; return; }
-      input.value = '';
-      await loadTips();
+      if (type === 'نصيحة') {
+        const result = await callAppsScript({ action: 'addTip', text: text });
+        if (!result.success) { errEl.textContent = result.error || 'تعذر إضافة النصيحة'; return; }
+      } else {
+        let imageUrl = '';
+        if (contentImageBase64) {
+          imageUrl = await uploadToCloudinary(contentImageBase64, 'announcement-photos', 'image/jpeg');
+        }
+        const result = await callAppsScript({ action: 'addAnnouncement', text: text, imageUrl: imageUrl });
+        if (!result.success) { errEl.textContent = result.error || 'تعذر إضافة الإعلان'; return; }
+      }
+
+      document.getElementById('contentForm').reset();
+      contentImageBase64 = null;
+      document.getElementById('contentImagePreviewWrap').classList.add('hidden');
+      updateContentTypeUI();
+      await loadCurrentTip();
+      await loadAnnouncements();
     } catch (err) {
       errEl.textContent = 'حدث خطأ في الاتصال';
     } finally {
-      btn.disabled = false; btn.textContent = '➕ إضافة نصيحة';
+      btn.disabled = false; btn.textContent = '➕ إضافة';
     }
   });
 
-  async function deleteTipHandler(rowIndex) {
-    if (!confirm('حذف هذي النصيحة نهائيًا؟')) return;
+  async function deleteAnnouncementHandler(rowIndex) {
+    if (!confirm('حذف هذا الإعلان نهائيًا؟')) return;
     try {
-      await callAppsScript({ action: 'deleteTip', rowIndex: rowIndex });
-      await loadTips();
+      await callAppsScript({ action: 'deleteAnnouncement', rowIndex: rowIndex });
+      await loadAnnouncements();
     } catch (_) {
-      alert('تعذر حذف النصيحة، حاول مرة أخرى');
+      alert('تعذر حذف الإعلان، حاول مرة أخرى');
+    }
+  }
+
+  // ===== نافذة تكبير صورة الإعلان =====
+  const imageLightbox = document.getElementById('imageLightbox');
+  function openImageLightbox(url) {
+    document.getElementById('lightboxImg').src = url;
+    imageLightbox.classList.remove('hidden');
+  }
+  imageLightbox.addEventListener('click', () => {
+    imageLightbox.classList.add('hidden');
+    document.getElementById('lightboxImg').src = '';
+  });
+
+  /* ====================================================================
+     تبويب "الجوائز" — طلبات الشراء
+     ==================================================================== */
+  let rewardsTabLoaded = false;
+
+  function purchaseStatusBadge(status) {
+    if (status === 'مقبول') return '<span style="color:var(--success);font-weight:800;">✅ مقبول</span>';
+    if (status === 'مرفوض') return '<span style="color:var(--error);font-weight:800;">❌ مرفوض</span>';
+    return '<span style="color:#C98A1F;font-weight:800;">⏳ قيد الانتظار</span>';
+  }
+
+  function renderPurchaseRequests(requests) {
+    const wrap = document.getElementById('purchaseRequestsList');
+    if (!requests || !requests.length) {
+      wrap.innerHTML = '<p class="list-empty">لا توجد طلبات شراء بعد</p>';
+      return;
+    }
+    wrap.innerHTML = requests.map((r) => `
+      <div class="list-item">
+        <div class="list-item-thumb">🛍️</div>
+        <div class="list-item-body">
+          <div class="list-item-title">${r.studentName} — ${r.rewardName}</div>
+          <div class="list-item-sub">${r.price} دينار · ${r.date} · ${purchaseStatusBadge(r.status)}</div>
+        </div>
+        ${r.status === 'قيد الانتظار' ? `
+          <div class="list-item-actions">
+            <button type="button" class="icon-btn" data-approve-req="${r.rowIndex}">✅</button>
+            <button type="button" class="icon-btn danger" data-reject-req="${r.rowIndex}">❌</button>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+
+    wrap.querySelectorAll('[data-approve-req]').forEach((btn) => {
+      btn.addEventListener('click', () => handlePurchaseAction('approvePurchaseRequest', Number(btn.dataset.approveReq), 'تأكيد قبول هذا الطلب وتسليم الجائزة؟'));
+    });
+    wrap.querySelectorAll('[data-reject-req]').forEach((btn) => {
+      btn.addEventListener('click', () => handlePurchaseAction('rejectPurchaseRequest', Number(btn.dataset.rejectReq), 'تأكيد رفض هذا الطلب؟ سيُرجع الدينار للطالب تلقائيًا'));
+    });
+  }
+
+  async function loadPurchaseRequests() {
+    document.getElementById('purchaseRequestsList').innerHTML = '<p class="list-empty">جاري التحميل...</p>';
+    try {
+      const data = await callAppsScript({ action: 'getPurchaseRequests' });
+      renderPurchaseRequests(data.success ? data.requests : []);
+    } catch (_) {
+      document.getElementById('purchaseRequestsList').innerHTML = '<p class="list-empty">تعذر تحميل الطلبات</p>';
+    }
+  }
+
+  async function handlePurchaseAction(action, rowIndex, confirmMsg) {
+    if (!confirm(confirmMsg)) return;
+    try {
+      const result = await callAppsScript({ action: action, rowIndex: rowIndex });
+      if (!result.success) { alert(result.error || 'تعذر تنفيذ الإجراء'); return; }
+      await loadPurchaseRequests();
+    } catch (_) {
+      alert('تعذر تنفيذ الإجراء، حاول مرة أخرى');
     }
   }
 
@@ -1203,21 +1386,34 @@
         <div class="list-item-thumb" style="${r.imageUrl ? `background-image:url('${r.imageUrl}');background-size:cover;background-position:center;` : ''}">${r.imageUrl ? '' : '🎁'}</div>
         <div class="list-item-body">
           <div class="list-item-title">${r.name}</div>
-          <div class="list-item-sub">${r.price} نقطة</div>
+          <div class="list-item-sub">${r.price} دينار · ${r.available ? '<span style="color:var(--success);font-weight:800;">متوفرة</span>' : '<span style="color:var(--error);font-weight:800;">نفذت الكمية</span>'}</div>
         </div>
         <div class="list-item-actions">
+          <button type="button" class="icon-btn" data-toggle-availability="${r.rowIndex}">${r.available ? '🚫' : '✅'}</button>
           <button type="button" class="icon-btn" data-edit-reward="${r.rowIndex}">✏️</button>
           <button type="button" class="icon-btn danger" data-delete-reward="${r.rowIndex}">🗑️</button>
         </div>
       </div>
     `).join('');
 
+    wrap.querySelectorAll('[data-toggle-availability]').forEach((btn) => {
+      btn.addEventListener('click', () => toggleRewardAvailabilityHandler(Number(btn.dataset.toggleAvailability)));
+    });
     wrap.querySelectorAll('[data-edit-reward]').forEach((btn) => {
       btn.addEventListener('click', () => startEditReward(Number(btn.dataset.editReward)));
     });
     wrap.querySelectorAll('[data-delete-reward]').forEach((btn) => {
       btn.addEventListener('click', () => deleteRewardHandler(Number(btn.dataset.deleteReward)));
     });
+  }
+
+  async function toggleRewardAvailabilityHandler(rowIndex) {
+    try {
+      await callAppsScript({ action: 'toggleRewardAvailability', rowIndex: rowIndex });
+      await loadRewards();
+    } catch (_) {
+      alert('تعذر تغيير حالة التوفر، حاول مرة أخرى');
+    }
   }
 
   async function loadRewards() {
