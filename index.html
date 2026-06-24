@@ -473,6 +473,9 @@
           </div>
           <div class="balance-display" id="detailBalance">0</div>
 
+          <button type="button" id="manualAttendanceBtn" class="btn-secondary" style="margin-bottom:14px;">✅ تسجيل حضور الآن</button>
+          <p class="error" id="attendanceMsg" style="color:var(--success);"></p>
+
           <div class="amount-selector">
             <button type="button" class="amount-chip" data-amount="10">+10</button>
             <button type="button" class="amount-chip" data-amount="20">+20</button>
@@ -1417,6 +1420,38 @@
     document.getElementById('balanceListView').classList.remove('hidden');
     selectedStudentId = null;
     filterAndRenderBalanceStudents(); // تحديث الأرصدة المعروضة بالقائمة فورًا بعد أي تعديل
+  });
+
+  // ===== تسجيل حضور يدوي (نفس قواعد محطة الحضور: صباحي/مسائي وحدود الوقت) =====
+  document.getElementById('manualAttendanceBtn').addEventListener('click', async () => {
+    if (!selectedStudentId) return;
+    const btn = document.getElementById('manualAttendanceBtn');
+    const msgEl = document.getElementById('attendanceMsg');
+    btn.disabled = true; btn.textContent = 'جاري التسجيل...'; msgEl.textContent = ''; msgEl.style.color = 'var(--success)';
+
+    try {
+      const data = await callAppsScript({ action: 'markAttendance', rawScan: selectedStudentId });
+      if (data.success) {
+        msgEl.style.color = 'var(--success)';
+        msgEl.textContent = 'تم تسجيل حضور البرنامج ال' + data.session + (data.tier === 'متأخر' ? ' (متأخر)' : '') + ' — ' + (data.pointsAdded > 0 ? '+' : '') + data.pointsAdded + ' نقطة';
+        document.getElementById('detailBalance').textContent = data.student.balance + ' نقطة';
+        const idx = allLoadedStudents.findIndex((s) => s.id === selectedStudentId);
+        if (idx !== -1) allLoadedStudents[idx].balance = data.student.balance;
+        if (allStudentsCache) {
+          const masterIdx = allStudentsCache.findIndex((s) => s.id === selectedStudentId);
+          if (masterIdx !== -1) allStudentsCache[masterIdx].balance = data.student.balance;
+        }
+        loadPointsLog(selectedStudentId);
+      } else {
+        msgEl.style.color = 'var(--error)';
+        msgEl.textContent = data.error || 'تعذر تسجيل الحضور';
+      }
+    } catch (_) {
+      msgEl.style.color = 'var(--error)';
+      msgEl.textContent = 'حدث خطأ في الاتصال';
+    } finally {
+      btn.disabled = false; btn.textContent = '✅ تسجيل حضور الآن';
+    }
   });
 
   function updatePendingDisplay() {
