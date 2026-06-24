@@ -230,8 +230,12 @@
   .placeholder-box{text-align:center;padding:40px 16px;color:var(--text-muted);}
   .placeholder-box .ic{font-size:2.2rem;margin-bottom:10px;}
 
-  /* checkbox يحتاج تصفير قواعد input العامة (width:100%/padding/border) */
-  input[type="checkbox"]{width:20px;height:20px;margin:0;padding:0;border-radius:4px;accent-color:var(--violet);flex-shrink:0;}
+  /* checkbox يحتاج استرجاع الشكل الافتراضي (appearance:auto) عشان تبان علامة ✓ —
+     قاعدة input العامة بالأعلى تحذفها بـ appearance:none بالغلط */
+  input[type="checkbox"]{
+    appearance:auto;-webkit-appearance:auto;
+    width:20px;height:20px;margin:0;padding:0;border-radius:4px;accent-color:var(--violet);flex-shrink:0;
+  }
 
   /* ===================== رصيد الطلاب ===================== */
   .balance-display{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:800;font-size:2.2rem;color:var(--indigo);text-align:center;margin:6px 0 16px;}
@@ -451,6 +455,7 @@
           <div id="balanceStudentsList" style="margin-top:6px;">
             <p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>
           </div>
+          <button type="button" id="refreshStudentsCacheBtn" class="btn-secondary">🔄 تحديث قائمة الطلاب</button>
         </div>
       </div>
 
@@ -531,7 +536,7 @@
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
 
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
-  const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/REPLACE_WITH_APP_NAME/';
+  const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/hawaya-student/';
 
   // شعار هواية (ملف خارجي مفرّغ الخلفية، بجانب index.html على GitHub)
   const LOGO_SRC = 'logo.png';
@@ -617,6 +622,13 @@
       managementLoaded = true;
       loadTips();
       loadRewards();
+    }
+
+    // تحميل قائمة كل الطلاب مرة واحدة فقط أول ما يُفتح تبويب رصيد الطلاب
+    // (البحث والفلترة بعد هذا يصيران محليين فورًا، بدون أي اتصال جديد بالخادم)
+    if (newIndex === 2 && !balanceTabLoaded) {
+      balanceTabLoaded = true;
+      loadAllStudentsCache();
     }
   }
 
@@ -1294,39 +1306,53 @@
 
   /* ====================================================================
      تبويب "رصيد الطلاب" — بحث/فلترة، تعديل فردي وجماعي، وسجل العمليات
+
+     مهم لسرعة البحث: نحمّل كل الطلاب مرة واحدة فقط (allStudentsCache)
+     أول ما يُفتح التبويب، وبعدها كل بحث/فلترة يصير محليًا بالمتصفح فورًا
+     بدون أي اتصال جديد بالخادم. زر "تحديث القائمة" يعيد التحميل يدويًا
+     لو احتجت بيانات أحدث (مثلًا بعد تسجيل طالب جديد بنفس الجلسة).
      ==================================================================== */
+  let allStudentsCache = null;
+  let balanceTabLoaded = false;
   let allLoadedStudents = [];
   let selectedBulkIds = new Set();
   let selectedStudentId = null;
   let pendingAmount = null;
   let bulkPendingAmount = null;
-  let balanceSearchTimer = null;
 
-  async function loadBalanceStudents() {
-    const stage = document.getElementById('balanceStageSelect').value;
-    const query = document.getElementById('balanceSearchInput').value.trim();
+  async function loadAllStudentsCache() {
     const listEl = document.getElementById('balanceStudentsList');
+    listEl.innerHTML = '<p class="list-empty">جاري تحميل قائمة الطلاب...</p>';
+    try {
+      const data = await callAppsScript({ action: 'getStudentsByStage', stage: '' });
+      allStudentsCache = data.success ? data.students : [];
+      filterAndRenderBalanceStudents();
+    } catch (_) {
+      listEl.innerHTML = '<p class="list-empty">تعذر تحميل قائمة الطلاب</p>';
+    }
+  }
+
+  function filterAndRenderBalanceStudents() {
+    const stage = document.getElementById('balanceStageSelect').value;
+    const query = document.getElementById('balanceSearchInput').value.trim().toLowerCase();
+    const listEl = document.getElementById('balanceStudentsList');
+
+    if (!allStudentsCache) return; // لسا التحميل الأول ما خلص
 
     if (!stage && !query) {
       listEl.innerHTML = '<p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>';
+      allLoadedStudents = [];
       return;
     }
 
-    listEl.innerHTML = '<p class="list-empty">جاري التحميل...</p>';
-    try {
-      let students;
-      if (query) {
-        const data = await callAppsScript({ action: 'searchStudents', query: query });
-        students = data.success ? data.students : [];
-        if (stage) students = students.filter((s) => s.stage === stage);
-      } else {
-        const data = await callAppsScript({ action: 'getStudentsByStage', stage: stage });
-        students = data.success ? data.students : [];
-      }
-      renderBalanceStudentsList(students);
-    } catch (_) {
-      listEl.innerHTML = '<p class="list-empty">تعذر تحميل الطلاب</p>';
+    let filtered = allStudentsCache;
+    if (stage) filtered = filtered.filter((s) => s.stage === stage);
+    if (query) {
+      filtered = filtered.filter((s) =>
+        s.id.toLowerCase().indexOf(query) !== -1 || (s.name || '').toLowerCase().indexOf(query) !== -1
+      );
     }
+    renderBalanceStudentsList(filtered);
   }
 
   function renderBalanceStudentsList(students) {
@@ -1360,11 +1386,9 @@
     });
   }
 
-  document.getElementById('balanceSearchInput').addEventListener('input', () => {
-    clearTimeout(balanceSearchTimer);
-    balanceSearchTimer = setTimeout(loadBalanceStudents, 400);
-  });
-  document.getElementById('balanceStageSelect').addEventListener('change', loadBalanceStudents);
+  document.getElementById('balanceSearchInput').addEventListener('input', filterAndRenderBalanceStudents);
+  document.getElementById('balanceStageSelect').addEventListener('change', filterAndRenderBalanceStudents);
+  document.getElementById('refreshStudentsCacheBtn').addEventListener('click', loadAllStudentsCache);
 
   // ===== تفاصيل طالب واحد =====
   function openStudentDetail(id) {
@@ -1392,6 +1416,7 @@
     document.getElementById('balanceDetailView').classList.add('hidden');
     document.getElementById('balanceListView').classList.remove('hidden');
     selectedStudentId = null;
+    filterAndRenderBalanceStudents(); // تحديث الأرصدة المعروضة بالقائمة فورًا بعد أي تعديل
   });
 
   function updatePendingDisplay() {
@@ -1443,6 +1468,10 @@
       document.getElementById('detailBalance').textContent = result.newBalance + ' نقطة';
       const idx = allLoadedStudents.findIndex((s) => s.id === selectedStudentId);
       if (idx !== -1) allLoadedStudents[idx].balance = result.newBalance;
+      if (allStudentsCache) {
+        const masterIdx = allStudentsCache.findIndex((s) => s.id === selectedStudentId);
+        if (masterIdx !== -1) allStudentsCache[masterIdx].balance = result.newBalance;
+      }
 
       pendingAmount = null;
       updatePendingDisplay();
@@ -1529,11 +1558,20 @@
       const result = await callAppsScript({ action: 'bulkAdjustPoints', ids: ids, amount: bulkPendingAmount });
       if (!result.success) { alert('حدث خطأ، حاول مرة أخرى'); return; }
 
+      if (allStudentsCache) {
+        (result.results || []).forEach((r) => {
+          if (r.success) {
+            const idx = allStudentsCache.findIndex((s) => s.id === r.id);
+            if (idx !== -1) allStudentsCache[idx].balance = r.newBalance;
+          }
+        });
+      }
+
       selectedBulkIds.clear();
       bulkPendingAmount = null;
       updateBulkBar();
       updateBulkPendingDisplay();
-      loadBalanceStudents();
+      filterAndRenderBalanceStudents();
     } catch (_) {
       alert('حدث خطأ بالاتصال');
     } finally {
