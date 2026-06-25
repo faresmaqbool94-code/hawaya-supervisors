@@ -129,7 +129,7 @@
 
     <div class="counters">
       <div class="counter-box"><div class="num" id="successCount">0</div><div class="lbl">تسجيلات ناجحة</div></div>
-      <div class="counter-box"><div class="num" id="lateCount">0</div><div class="lbl">حضور متأخر</div></div>
+      <div class="counter-box"><div class="num" id="lateCount">0</div><div class="lbl">حضور مبكر ⭐</div></div>
     </div>
 
     <div class="queue-badge" id="queueBadge"></div>
@@ -188,12 +188,14 @@
     const h = now.getHours(), m = now.getMinutes();
     const total = h * 60 + m;
     const badge = document.getElementById('sessionNowBadge');
-    if (total >= 9 * 60 && total < 11 * 60) {
-      badge.textContent = '☀️ البرنامج الصباحي مفتوح الآن (9:00 - 11:00)';
-    } else if (total >= 16 * 60 && total < 17 * 60) {
-      badge.textContent = '🌇 البرنامج المسائي مفتوح الآن (الوقت المبكر)';
-    } else if (total >= 17 * 60 && total < 19 * 60) {
-      badge.textContent = '🌆 البرنامج المسائي مفتوح الآن (حضور متأخر)';
+    if (total >= 9 * 60 && total < 9 * 60 + 45) {
+      badge.textContent = '⭐ الصباحي مفتوح (حضور مبكر — 50 دينار)';
+    } else if (total >= 9 * 60 + 45 && total < 11 * 60 + 30) {
+      badge.textContent = '☀️ الصباحي مفتوح (حضور عادي — 30 دينار)';
+    } else if (total >= 15 * 60 + 30 && total < 16 * 60 + 30) {
+      badge.textContent = '⭐ المسائي مفتوح (حضور مبكر — 50 دينار)';
+    } else if (total >= 16 * 60 + 30 && total < 19 * 60) {
+      badge.textContent = '🌆 المسائي مفتوح (حضور عادي — 30 دينار)';
     } else {
       badge.textContent = '⏸️ لا يوجد برنامج مفتوح بهذا الوقت';
     }
@@ -222,13 +224,11 @@
   }
 
   function buildSuccessMessage(data) {
-    if (data.session === 'صباحي') {
-      return { kind: 'success', msg: 'تم تسجيل حضورك بالبرنامج الصباحي ☀️', points: '+' + data.pointsAdded + ' نقطة' };
-    }
+    const sessionLabel = data.session === 'صباحي' ? 'الصباحي' : 'المسائي';
     if (data.tier === 'مبكر') {
-      return { kind: 'success', msg: 'تم تسجيل حضورك بالبرنامج المسائي مبكرًا ⭐', points: '+' + data.pointsAdded + ' نقطة' };
+      return { kind: 'success', msg: 'تم تسجيل حضورك بالبرنامج ' + sessionLabel + ' مبكرًا ⭐', points: '+' + data.pointsAdded + ' دينار', early: true };
     }
-    return { kind: 'late', msg: 'تم تسجيل حضورك بالبرنامج المسائي (متأخر) ⏰', points: '+' + data.pointsAdded + ' نقطة فقط' };
+    return { kind: 'success', msg: 'تم تسجيل حضورك بالبرنامج ' + sessionLabel + ' ✅', points: '+' + data.pointsAdded + ' دينار', early: false };
   }
 
   // مدة عرض كل نتيجة بالنافذة المنبثقة قبل الانتقال للمسح التالي بالطابور
@@ -241,8 +241,8 @@
       if (data.success) {
         const built = buildSuccessMessage(data);
         showResult(built.kind, data.student.imageUrl, data.student.name, data.student.stage, built.msg, built.points);
-        if (built.kind === 'late') { lateCount++; document.getElementById('lateCount').textContent = lateCount; }
-        else { successCount++; document.getElementById('successCount').textContent = successCount; }
+        successCount++; document.getElementById('successCount').textContent = successCount;
+        if (built.early) { lateCount++; document.getElementById('lateCount').textContent = lateCount; }
       } else if (data.alreadyMarked) {
         showResult('warn', data.student ? data.student.imageUrl : '', data.student ? data.student.name : '',
           data.student ? data.student.stage : '', data.error, null);
