@@ -586,6 +586,7 @@
   <!-- شريط الإجراء الجماعي — يظهر فقط لو فيه طلاب محددين بالقائمة -->
   <div id="bulkActionBar" class="bulk-bar hidden">
     <span id="bulkSelectedCount"></span>
+    <button type="button" id="bulkAttendanceBtn" class="btn-secondary" style="margin-bottom:12px;">📋 تحضير</button>
     <div class="amount-selector">
       <button type="button" class="amount-chip" data-bulk-amount="10">+10</button>
       <button type="button" class="amount-chip" data-bulk-amount="20">+20</button>
@@ -1764,7 +1765,7 @@
       const data = await callAppsScript({ action: 'markAttendance', rawScan: selectedStudentId });
       if (data.success) {
         msgEl.style.color = 'var(--success)';
-        msgEl.textContent = 'تم تسجيل حضور البرنامج ال' + data.session + (data.tier === 'متأخر' ? ' (متأخر)' : '') + ' — ' + (data.pointsAdded > 0 ? '+' : '') + data.pointsAdded + ' نقطة';
+        msgEl.textContent = 'تم تسجيل حضور البرنامج ال' + data.session + (data.tier === 'مبكر' ? ' (مبكر ⭐)' : ' (عادي)') + ' — +' + data.pointsAdded + ' دينار';
         document.getElementById('detailBalance').textContent = data.student.balance + ' نقطة';
         const idx = allLoadedStudents.findIndex((s) => s.id === selectedStudentId);
         if (idx !== -1) allLoadedStudents[idx].balance = data.student.balance;
@@ -1957,6 +1958,45 @@
       confirmBtn.disabled = false;
     }
   }
+
+  document.getElementById('bulkAttendanceBtn').addEventListener('click', async () => {
+    if (!selectedBulkIds.size) return;
+    const btn = document.getElementById('bulkAttendanceBtn');
+    btn.disabled = true; btn.textContent = 'جاري التحضير...';
+    let resultMsg;
+    try {
+      const ids = Array.from(selectedBulkIds);
+      const result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids });
+      if (!result.success) {
+        resultMsg = result.error || 'تعذر تسجيل الحضور';
+      } else {
+        const successN = result.results.filter((r) => r.success).length;
+        const alreadyN = result.results.filter((r) => r.alreadyMarked).length;
+
+        if (allStudentsCache) {
+          result.results.forEach((r) => {
+            if (r.success) {
+              const idx = allStudentsCache.findIndex((s) => s.id === r.id);
+              if (idx !== -1) allStudentsCache[idx].balance = r.newBalance;
+            }
+          });
+        }
+
+        selectedBulkIds.clear();
+        filterAndRenderBalanceStudents();
+
+        resultMsg = '✅ تم تحضير ' + successN + (alreadyN ? ('، مسجل من قبل ' + alreadyN) : '');
+      }
+    } catch (_) {
+      resultMsg = 'فشل الاتصال، حاول مرة أخرى';
+    }
+
+    btn.textContent = resultMsg;
+    setTimeout(() => {
+      btn.disabled = false; btn.textContent = '📋 تحضير';
+      updateBulkBar(); // يخفي الشريط تلقائيًا الآن بعد ما خلصت التحديد (لو فاضي)
+    }, 2500);
+  });
 
   document.getElementById('bulkConfirmBtn').addEventListener('click', async () => {
     if (bulkPendingAmount === null || !selectedBulkIds.size) return;
