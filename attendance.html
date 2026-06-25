@@ -65,14 +65,20 @@
   .counter-box .num{font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:800;font-size:1.5rem;color:var(--indigo);}
   .counter-box .lbl{font-size:.74rem;color:var(--text-muted);margin-top:2px;}
 
-  /* بطاقة النتيجة */
-  .result-card{
-    margin-top:18px;border-radius:var(--radius);padding:26px 22px;text-align:center;
-    box-shadow:0 18px 50px -12px rgba(53,40,104,.22);
-    animation:pop .35s ease;display:none;
+  /* نافذة النتيجة المنبثقة — بوسط الشاشة، تظهر وتختفي تلقائيًا */
+  .result-overlay{
+    position:fixed;inset:0;background:rgba(43,38,64,.45);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    z-index:70;opacity:0;pointer-events:none;transition:opacity .2s ease;
   }
-  .result-card.show{display:block;}
-  @keyframes pop{0%{transform:scale(.92);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .result-overlay.show{opacity:1;pointer-events:auto;}
+
+  .result-card{
+    width:100%;max-width:380px;border-radius:var(--radius);padding:26px 22px;text-align:center;
+    box-shadow:0 18px 50px -12px rgba(0,0,0,.35);
+    animation:pop .3s ease;
+  }
+  @keyframes pop{0%{transform:scale(.9);opacity:0;}100%{transform:scale(1);opacity:1;}}
   .result-card.success{background:linear-gradient(135deg, #1A1430, var(--indigo) 60%, var(--success) 160%);color:#fff;}
   .result-card.late{background:linear-gradient(135deg, #1A1430, var(--indigo) 60%, var(--late) 160%);color:#fff;}
   .result-card.warn{background:#FFF6E8;border:2px solid #FFD976;color:#7A5400;}
@@ -97,6 +103,13 @@
   }
   .result-card.warn .result-points, .result-card.error .result-points{background:rgba(0,0,0,.06);}
 
+  /* عداد بالطابور — يبيّن للمشرف عدد الطلاب اللي لسا قيد المعالجة */
+  .queue-badge{
+    margin-top:10px;font-size:.78rem;font-weight:700;color:var(--violet);
+    display:none;
+  }
+  .queue-badge.show{display:block;}
+
   @media (prefers-reduced-motion: reduce){*{animation:none !important;}}
 </style>
 </head>
@@ -118,14 +131,19 @@
       <div class="counter-box"><div class="num" id="successCount">0</div><div class="lbl">تسجيلات ناجحة</div></div>
       <div class="counter-box"><div class="num" id="lateCount">0</div><div class="lbl">حضور متأخر</div></div>
     </div>
+
+    <div class="queue-badge" id="queueBadge"></div>
   </div>
 
-  <div class="result-card" id="resultCard">
-    <div class="result-photo" id="resultPhoto">🧒</div>
-    <div class="result-name" id="resultName"></div>
-    <div class="result-stage" id="resultStage"></div>
-    <div class="result-message" id="resultMessage"></div>
-    <div class="result-points" id="resultPoints"></div>
+  <!-- نافذة النتيجة المنبثقة بوسط الشاشة — تظهر فورًا وتختفي تلقائيًا -->
+  <div class="result-overlay" id="resultOverlay">
+    <div class="result-card" id="resultCard">
+      <div class="result-photo" id="resultPhoto">🧒</div>
+      <div class="result-name" id="resultName"></div>
+      <div class="result-stage" id="resultStage"></div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-points" id="resultPoints"></div>
+    </div>
   </div>
 </div>
 
@@ -135,9 +153,24 @@
   document.getElementById('headerLogo').src = 'logo.png';
 
   const scanInput = document.getElementById('scanInput');
+  const resultOverlay = document.getElementById('resultOverlay');
   const resultCard = document.getElementById('resultCard');
+  const queueBadge = document.getElementById('queueBadge');
   let successCount = 0;
   let lateCount = 0;
+
+  // ====== الطابور: كل مسح ينضاف هنا فورًا، ويُعالَج بدوره بدون أي انتظار من المشرف ======
+  let scanQueue = [];
+  let isProcessingQueue = false;
+
+  function updateQueueBadge() {
+    if (scanQueue.length > 0) {
+      queueBadge.textContent = '⏳ بالطابور: ' + scanQueue.length + ' بانتظار المعالجة';
+      queueBadge.classList.add('show');
+    } else {
+      queueBadge.classList.remove('show');
+    }
+  }
 
   async function callAppsScript(payload) {
     const res = await fetch(APPS_SCRIPT_URL, {
@@ -169,7 +202,7 @@
   setInterval(updateSessionBadge, 30000);
 
   function showResult(kind, photo, name, stage, message, pointsText) {
-    resultCard.className = 'result-card show ' + kind;
+    resultCard.className = 'result-card ' + kind;
     const photoEl = document.getElementById('resultPhoto');
     if (photo) { photoEl.style.backgroundImage = "url('" + photo + "')"; photoEl.textContent = ''; }
     else { photoEl.style.backgroundImage = ''; photoEl.textContent = kind === 'error' ? '❓' : '🧒'; }
@@ -180,6 +213,12 @@
     const pointsEl = document.getElementById('resultPoints');
     if (pointsText) { pointsEl.textContent = pointsText; pointsEl.style.display = 'inline-block'; }
     else { pointsEl.style.display = 'none'; }
+
+    resultOverlay.classList.add('show');
+  }
+
+  function hideResult() {
+    resultOverlay.classList.remove('show');
   }
 
   function buildSuccessMessage(data) {
@@ -192,10 +231,10 @@
     return { kind: 'late', msg: 'تم تسجيل حضورك بالبرنامج المسائي (متأخر) ⏰', points: '+' + data.pointsAdded + ' نقطة فقط' };
   }
 
-  async function processScan(rawValue) {
-    const value = rawValue.trim();
-    if (!value) return;
+  // مدة عرض كل نتيجة بالنافذة المنبثقة قبل الانتقال للمسح التالي بالطابور
+  const RESULT_DISPLAY_MS = 1600;
 
+  async function processOneScan(value) {
     try {
       const data = await callAppsScript({ action: 'markAttendance', rawScan: value });
 
@@ -210,21 +249,40 @@
       } else if (data.noSessionOpen) {
         showResult('warn', '', '', '', data.error, null);
       } else {
-        showResult('error', '', '', '', data.error || 'تعذر التعرف على الباركود، حاول مرة أخرى', null);
+        showResult('error', '', '', '', (data.error || 'تعذر التعرف على الباركود') + ' — النص المقروء: «' + value + '»', null);
       }
     } catch (err) {
       showResult('error', '', '', '', 'تعذر الاتصال بالخادم، تحقق من الإنترنت', null);
     }
 
-    scanInput.value = '';
-    setTimeout(() => scanInput.focus(), 50);
+    // نعرض النتيجة لمدة قصيرة ثم نختفيها تلقائيًا قبل الانتقال للمسح التالي
+    await new Promise((resolve) => setTimeout(resolve, RESULT_DISPLAY_MS));
+    hideResult();
   }
 
-  // السكانر يضغط Enter تلقائيًا بعد كل مسح — هذا يغطي الحالة الافتراضية لأغلب الأجهزة
+  // يسحب من الطابور بالترتيب، عنصر بعد عنصر، بدون أي تداخل أو تعارض بالعرض
+  async function processQueue() {
+    if (isProcessingQueue) return; // الحلقة شغالة بالفعل، أي عنصر جديد ينضاف للطابور وتتكفل به نفس الحلقة
+    isProcessingQueue = true;
+    while (scanQueue.length > 0) {
+      const value = scanQueue.shift();
+      updateQueueBadge();
+      await processOneScan(value);
+    }
+    isProcessingQueue = false;
+    updateQueueBadge();
+  }
+
+  // السكانر يضغط Enter تلقائيًا بعد كل مسح — كل مسح ينضاف للطابور فورًا بدون انتظار
   scanInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      processScan(scanInput.value);
+      const value = scanInput.value.trim();
+      scanInput.value = '';
+      if (!value) return;
+      scanQueue.push(value);
+      updateQueueBadge();
+      processQueue();
     }
   });
 
