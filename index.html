@@ -185,7 +185,7 @@
   .pages-viewport{flex:1;position:relative;overflow:hidden;}
   .page-panel{
     position:absolute;inset:0;overflow-y:auto;
-    padding:18px 16px calc(var(--nav-h) + 24px);
+    padding:18px 16px calc(var(--nav-h) + 70px);
     -webkit-overflow-scrolling:touch;overscroll-behavior-y:auto;
     transform:translateX(100%);transition:transform .4s cubic-bezier(.22,.61,.36,1);display:none;
   }
@@ -271,6 +271,19 @@
     border-radius:20px 20px 0 0;
   }
   #bulkSelectedCount{display:block;text-align:center;font-weight:800;color:var(--indigo);margin-bottom:10px;font-size:.88rem;}
+
+  /* مربع تحديد الكل الحقيقي + زر فلتر الحاضرين فقط */
+  .balance-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .select-all-label{
+    display:flex;align-items:center;gap:6px;background:#F3F0FA;color:var(--indigo);
+    border-radius:999px;padding:8px 14px;font-size:.84rem;font-weight:800;cursor:pointer;margin:0;
+  }
+  .select-all-label input{margin:0;}
+  .present-filter-btn{
+    width:auto;padding:8px 14px;font-size:.84rem;border-radius:999px;
+    background:#F3F0FA;color:var(--indigo);box-shadow:none;font-weight:800;
+  }
+  .present-filter-btn.active{background:linear-gradient(95deg, var(--blue), var(--violet));color:#fff;}
 
   @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
@@ -496,12 +509,21 @@
               <option>أول ابتدائي</option><option>ثاني ابتدائي</option>
               <option>ثالث ابتدائي</option><option>رابع ابتدائي</option>
               <option>خامس ابتدائي</option><option>سادس ابتدائي</option>
+              <option value="كل_متوسط">كل المرحلة المتوسطة</option>
               <option>أول متوسط</option><option>ثاني متوسط</option><option>ثالث متوسط</option>
+              <option value="كل_ثانوي">كل المرحلة الثانوية</option>
               <option>أول ثانوي</option><option>ثاني ثانوي</option><option>ثالث ثانوي</option>
             </select>
           </label>
 
-          <button type="button" id="selectAllBtn" class="btn-secondary hidden">☑️ تحديد الكل</button>
+          <div class="balance-toolbar hidden" id="balanceToolbar">
+            <label class="select-all-label">
+              <input type="checkbox" id="selectAllCheckbox">
+              <span>الكل</span>
+            </label>
+            <button type="button" id="presentOnlyBtn" class="present-filter-btn">✅ الحاضرين فقط</button>
+          </div>
+
           <div id="balanceStudentsList" style="margin-top:6px;">
             <p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>
           </div>
@@ -812,6 +834,53 @@
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
+  }
+
+  /* ====================================================================
+     بدائل النوافذ المنبثقة (confirm/alert) — زر "تأكيد" يطلع جنب الزر
+     الأصلي مباشرة بدل أي نافذة منبثقة أو تنبيه عائم
+     ==================================================================== */
+  function showInlineConfirm(triggerBtn, onConfirm) {
+    if (triggerBtn.dataset.confirming === '1') return;
+    triggerBtn.dataset.confirming = '1';
+    triggerBtn.style.display = 'none';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'icon-btn';
+    confirmBtn.style.background = 'var(--blue)';
+    confirmBtn.style.color = '#fff';
+    confirmBtn.textContent = 'تأكيد';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'icon-btn';
+    cancelBtn.textContent = '✖';
+
+    function cleanup() {
+      confirmBtn.remove();
+      cancelBtn.remove();
+      triggerBtn.style.display = '';
+      delete triggerBtn.dataset.confirming;
+    }
+
+    confirmBtn.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '...';
+      try {
+        await onConfirm();
+      } catch (err) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = (err && err.message) ? err.message : 'فشل';
+        setTimeout(cleanup, 2200);
+        return;
+      }
+      cleanup();
+    });
+    cancelBtn.addEventListener('click', cleanup);
+
+    triggerBtn.insertAdjacentElement('afterend', confirmBtn);
+    confirmBtn.insertAdjacentElement('afterend', cancelBtn);
   }
 
   form.addEventListener('submit', async (e) => {
@@ -1208,7 +1277,7 @@
       el.addEventListener('click', () => openImageLightbox(el.dataset.openImage));
     });
     wrap.querySelectorAll('[data-delete-announcement]').forEach((btn) => {
-      btn.addEventListener('click', () => deleteAnnouncementHandler(Number(btn.dataset.deleteAnnouncement)));
+      btn.addEventListener('click', () => showInlineConfirm(btn, () => deleteAnnouncementHandler(Number(btn.dataset.deleteAnnouncement))));
     });
   }
 
@@ -1259,13 +1328,9 @@
   });
 
   async function deleteAnnouncementHandler(rowIndex) {
-    if (!confirm('حذف هذا الإعلان نهائيًا؟')) return;
-    try {
-      await callAppsScript({ action: 'deleteAnnouncement', rowIndex: rowIndex });
-      await loadAnnouncements();
-    } catch (_) {
-      alert('تعذر حذف الإعلان، حاول مرة أخرى');
-    }
+    const result = await callAppsScript({ action: 'deleteAnnouncement', rowIndex: rowIndex });
+    if (!result.success) throw new Error(result.error || 'فشل الحذف');
+    await loadAnnouncements();
   }
 
   // ===== نافذة تكبير صورة الإعلان =====
@@ -1313,10 +1378,10 @@
     `).join('');
 
     wrap.querySelectorAll('[data-approve-req]').forEach((btn) => {
-      btn.addEventListener('click', () => handlePurchaseAction('approvePurchaseRequest', Number(btn.dataset.approveReq), 'تأكيد قبول هذا الطلب وتسليم الجائزة؟'));
+      btn.addEventListener('click', () => showInlineConfirm(btn, () => handlePurchaseAction('approvePurchaseRequest', Number(btn.dataset.approveReq))));
     });
     wrap.querySelectorAll('[data-reject-req]').forEach((btn) => {
-      btn.addEventListener('click', () => handlePurchaseAction('rejectPurchaseRequest', Number(btn.dataset.rejectReq), 'تأكيد رفض هذا الطلب؟ سيُرجع الدينار للطالب تلقائيًا'));
+      btn.addEventListener('click', () => showInlineConfirm(btn, () => handlePurchaseAction('rejectPurchaseRequest', Number(btn.dataset.rejectReq))));
     });
   }
 
@@ -1330,15 +1395,10 @@
     }
   }
 
-  async function handlePurchaseAction(action, rowIndex, confirmMsg) {
-    if (!confirm(confirmMsg)) return;
-    try {
-      const result = await callAppsScript({ action: action, rowIndex: rowIndex });
-      if (!result.success) { alert(result.error || 'تعذر تنفيذ الإجراء'); return; }
-      await loadPurchaseRequests();
-    } catch (_) {
-      alert('تعذر تنفيذ الإجراء، حاول مرة أخرى');
-    }
+  async function handlePurchaseAction(action, rowIndex) {
+    const result = await callAppsScript({ action: action, rowIndex: rowIndex });
+    if (!result.success) throw new Error(result.error || 'تعذر تنفيذ الإجراء');
+    await loadPurchaseRequests();
   }
 
   /* ====================================================================
@@ -1403,7 +1463,7 @@
       btn.addEventListener('click', () => startEditReward(Number(btn.dataset.editReward)));
     });
     wrap.querySelectorAll('[data-delete-reward]').forEach((btn) => {
-      btn.addEventListener('click', () => deleteRewardHandler(Number(btn.dataset.deleteReward)));
+      btn.addEventListener('click', () => showInlineConfirm(btn, () => deleteRewardHandler(Number(btn.dataset.deleteReward))));
     });
   }
 
@@ -1412,7 +1472,7 @@
       await callAppsScript({ action: 'toggleRewardAvailability', rowIndex: rowIndex });
       await loadRewards();
     } catch (_) {
-      alert('تعذر تغيير حالة التوفر، حاول مرة أخرى');
+      // تجاهل بصمت — القائمة تبقى بحالتها السابقة، يقدر يعيد المحاولة
     }
   }
 
@@ -1511,14 +1571,10 @@
   });
 
   async function deleteRewardHandler(rowIndex) {
-    if (!confirm('حذف هذي الجائزة نهائيًا؟')) return;
-    try {
-      await callAppsScript({ action: 'deleteReward', rowIndex: rowIndex });
-      if (editingRewardIndex === rowIndex) cancelRewardEdit();
-      await loadRewards();
-    } catch (_) {
-      alert('تعذر حذف الجائزة، حاول مرة أخرى');
-    }
+    const result = await callAppsScript({ action: 'deleteReward', rowIndex: rowIndex });
+    if (!result.success) throw new Error(result.error || 'فشل الحذف');
+    if (editingRewardIndex === rowIndex) cancelRewardEdit();
+    await loadRewards();
   }
 
   /* ====================================================================
@@ -1536,6 +1592,8 @@
   let selectedStudentId = null;
   let pendingAmount = null;
   let bulkPendingAmount = null;
+  let presentOnlyActive = false;
+  let todayAttendeeIds = null; // null = لسا ما تحمّلت، تُحمّل أول ما يُفعَّل الفلتر
 
   async function loadAllStudentsCache() {
     const listEl = document.getElementById('balanceStudentsList');
@@ -1549,6 +1607,14 @@
     }
   }
 
+  // مرحلة مفردة، أو مجمّعة (كل المتوسط/الثانوي)، أو فاضية (كل المراحل)
+  function studentMatchesStageFilter(student, stageFilter) {
+    if (!stageFilter) return true;
+    if (stageFilter === 'كل_متوسط') return student.stage.indexOf('متوسط') !== -1;
+    if (stageFilter === 'كل_ثانوي') return student.stage.indexOf('ثانوي') !== -1;
+    return student.stage === stageFilter;
+  }
+
   function filterAndRenderBalanceStudents() {
     const stage = document.getElementById('balanceStageSelect').value;
     const query = document.getElementById('balanceSearchInput').value.trim().toLowerCase();
@@ -1556,38 +1622,64 @@
 
     if (!allStudentsCache) return; // لسا التحميل الأول ما خلص
 
-    if (!stage && !query) {
+    if (!stage && !query && !presentOnlyActive) {
       listEl.innerHTML = '<p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>';
       allLoadedStudents = [];
-      document.getElementById('selectAllBtn').classList.add('hidden');
+      document.getElementById('balanceToolbar').classList.add('hidden');
       return;
     }
 
-    let filtered = allStudentsCache;
-    if (stage) filtered = filtered.filter((s) => s.stage === stage);
+    document.getElementById('balanceToolbar').classList.remove('hidden');
+
+    let filtered = allStudentsCache.filter((s) => studentMatchesStageFilter(s, stage));
     if (query) {
       filtered = filtered.filter((s) =>
         s.id.toLowerCase().indexOf(query) !== -1 || (s.name || '').toLowerCase().indexOf(query) !== -1
       );
     }
+    if (presentOnlyActive && todayAttendeeIds) {
+      filtered = filtered.filter((s) => todayAttendeeIds.has(s.id));
+    }
     renderBalanceStudentsList(filtered);
   }
 
-  function updateSelectAllBtn() {
-    const btn = document.getElementById('selectAllBtn');
-    if (!allLoadedStudents.length) { btn.classList.add('hidden'); return; }
-    btn.classList.remove('hidden');
-    const allSelected = allLoadedStudents.every((s) => selectedBulkIds.has(s.id));
-    btn.textContent = allSelected ? '⬜ إلغاء تحديد الكل' : '☑️ تحديد الكل (' + allLoadedStudents.length + ')';
+  // ===== مربع تحديد الكل (checkbox حقيقي، يتزامن بالاتجاهين مع تحديد الأفراد) =====
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+  function updateSelectAllCheckboxState() {
+    if (!allLoadedStudents.length) { selectAllCheckbox.checked = false; return; }
+    selectAllCheckbox.checked = allLoadedStudents.every((s) => selectedBulkIds.has(s.id));
   }
 
-  document.getElementById('selectAllBtn').addEventListener('click', () => {
-    const allSelected = allLoadedStudents.length > 0 && allLoadedStudents.every((s) => selectedBulkIds.has(s.id));
+  selectAllCheckbox.addEventListener('change', () => {
     allLoadedStudents.forEach((s) => {
-      if (allSelected) selectedBulkIds.delete(s.id); else selectedBulkIds.add(s.id);
+      if (selectAllCheckbox.checked) selectedBulkIds.add(s.id); else selectedBulkIds.delete(s.id);
     });
     renderBalanceStudentsList(allLoadedStudents);
     updateBulkBar();
+  });
+
+  // ===== فلتر "الحاضرين فقط" (حضور صباحي أو مسائي بنفس اليوم) =====
+  const presentOnlyBtn = document.getElementById('presentOnlyBtn');
+  presentOnlyBtn.addEventListener('click', async () => {
+    presentOnlyActive = !presentOnlyActive;
+    presentOnlyBtn.classList.toggle('active', presentOnlyActive);
+
+    if (presentOnlyActive && !todayAttendeeIds) {
+      presentOnlyBtn.disabled = true;
+      presentOnlyBtn.textContent = '⏳ جاري التحميل...';
+      try {
+        const data = await callAppsScript({ action: 'getTodayAttendees' });
+        todayAttendeeIds = new Set(data.success ? data.ids : []);
+        presentOnlyBtn.textContent = '✅ الحاضرين فقط';
+      } catch (_) {
+        todayAttendeeIds = new Set();
+        presentOnlyBtn.textContent = '⚠️ تعذر التحميل';
+        setTimeout(() => { presentOnlyBtn.textContent = '✅ الحاضرين فقط'; }, 2200);
+      }
+      presentOnlyBtn.disabled = false;
+    }
+    filterAndRenderBalanceStudents();
   });
 
   function renderBalanceStudentsList(students) {
@@ -1595,7 +1687,7 @@
     const listEl = document.getElementById('balanceStudentsList');
     if (!students || !students.length) {
       listEl.innerHTML = '<p class="list-empty">لا يوجد طلاب مطابقين</p>';
-      document.getElementById('selectAllBtn').classList.add('hidden');
+      updateSelectAllCheckboxState();
       return;
     }
     listEl.innerHTML = students.map((s) => `
@@ -1604,7 +1696,7 @@
         <div class="list-item-thumb" style="${s.imageUrl ? `background-image:url('${s.imageUrl}');background-size:cover;background-position:center;` : ''}">${s.imageUrl ? '' : '🧒'}</div>
         <div class="list-item-body">
           <div class="list-item-title">${s.name}</div>
-          <div class="list-item-sub">${s.stage} · ${s.balance} نقطة</div>
+          <div class="list-item-sub">${s.stage} · ${s.balance} دينار</div>
         </div>
       </div>
     `).join('');
@@ -1615,14 +1707,14 @@
         const id = e.target.dataset.selectId;
         if (e.target.checked) selectedBulkIds.add(id); else selectedBulkIds.delete(id);
         updateBulkBar();
-        updateSelectAllBtn();
+        updateSelectAllCheckboxState();
       });
     });
     listEl.querySelectorAll('[data-open-detail]').forEach((row) => {
       row.addEventListener('click', () => openStudentDetail(row.dataset.openDetail));
     });
 
-    updateSelectAllBtn();
+    updateSelectAllCheckboxState();
   }
 
   document.getElementById('balanceSearchInput').addEventListener('input', filterAndRenderBalanceStudents);
@@ -1870,28 +1962,35 @@
     if (bulkPendingAmount === null || !selectedBulkIds.size) return;
     const btn = document.getElementById('bulkConfirmBtn');
     btn.disabled = true; btn.textContent = 'جاري التطبيق...';
+    let failMsg = null;
     try {
       const ids = Array.from(selectedBulkIds);
       const result = await callAppsScript({ action: 'bulkAdjustPoints', ids: ids, amount: bulkPendingAmount });
-      if (!result.success) { alert('حدث خطأ، حاول مرة أخرى'); return; }
-
-      if (allStudentsCache) {
-        (result.results || []).forEach((r) => {
-          if (r.success) {
-            const idx = allStudentsCache.findIndex((s) => s.id === r.id);
-            if (idx !== -1) allStudentsCache[idx].balance = r.newBalance;
-          }
-        });
+      if (!result.success) {
+        failMsg = 'فشل، حاول مرة أخرى';
+      } else {
+        if (allStudentsCache) {
+          (result.results || []).forEach((r) => {
+            if (r.success) {
+              const idx = allStudentsCache.findIndex((s) => s.id === r.id);
+              if (idx !== -1) allStudentsCache[idx].balance = r.newBalance;
+            }
+          });
+        }
+        selectedBulkIds.clear();
+        bulkPendingAmount = null;
+        updateBulkBar();
+        updateBulkPendingDisplay();
+        filterAndRenderBalanceStudents();
       }
-
-      selectedBulkIds.clear();
-      bulkPendingAmount = null;
-      updateBulkBar();
-      updateBulkPendingDisplay();
-      filterAndRenderBalanceStudents();
     } catch (_) {
-      alert('حدث خطأ بالاتصال');
-    } finally {
+      failMsg = 'فشل الاتصال، حاول مرة أخرى';
+    }
+
+    if (failMsg) {
+      btn.textContent = failMsg;
+      setTimeout(() => { btn.disabled = false; btn.textContent = '✅ تأكيد للكل المحددين'; }, 2200);
+    } else {
       btn.disabled = false; btn.textContent = '✅ تأكيد للكل المحددين';
     }
   });
