@@ -188,7 +188,7 @@
     const h = now.getHours(), m = now.getMinutes();
     const total = h * 60 + m;
     const badge = document.getElementById('sessionNowBadge');
-    if (total >= 9 * 60 && total < 9 * 60 + 45) {
+    if (total >= 8 * 60 + 30 && total < 9 * 60 + 45) {
       badge.textContent = '⭐ الصباحي مفتوح (حضور مبكر — 50 دينار)';
     } else if (total >= 9 * 60 + 45 && total < 11 * 60 + 30) {
       badge.textContent = '☀️ الصباحي مفتوح (حضور عادي — 30 دينار)';
