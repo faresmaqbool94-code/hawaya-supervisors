@@ -716,13 +716,15 @@
     'معتصم عماد': '3718'
   };
   const SUPERVISOR_SESSION_KEY = 'hawaya_supervisor_session';
+  let currentSupervisorName = '';
 
   function showSupervisorLogin(errorText) {
     document.getElementById('supervisorLoginView').classList.remove('hidden');
     document.getElementById('appView').classList.add('hidden');
     document.getElementById('supervisorLoginError').textContent = errorText || '';
   }
-  function showSupervisorApp() {
+  function showSupervisorApp(name) {
+    currentSupervisorName = name;
     document.getElementById('supervisorLoginView').classList.add('hidden');
     document.getElementById('appView').classList.remove('hidden');
   }
@@ -738,18 +740,19 @@
     if (SUPERVISORS[name] !== pin) { errEl.textContent = 'الرقم السري غير صحيح'; return; }
 
     localStorage.setItem(SUPERVISOR_SESSION_KEY, name);
-    showSupervisorApp();
+    showSupervisorApp(name);
   });
 
   document.getElementById('supervisorLogoutBtn').addEventListener('click', () => {
     localStorage.removeItem(SUPERVISOR_SESSION_KEY);
     document.getElementById('supervisorLoginForm').reset();
+    currentSupervisorName = '';
     showSupervisorLogin();
   });
 
   (function initSupervisorAuth() {
     const saved = localStorage.getItem(SUPERVISOR_SESSION_KEY);
-    if (saved && SUPERVISORS[saved]) showSupervisorApp();
+    if (saved && SUPERVISORS[saved]) showSupervisorApp(saved);
     else showSupervisorLogin();
   })();
 
@@ -1986,7 +1989,7 @@
     btn.disabled = true; btn.textContent = 'جاري التسجيل...'; msgEl.textContent = ''; msgEl.style.color = 'var(--success)';
 
     try {
-      const data = await callAppsScript({ action: 'markAttendance', rawScan: selectedStudentId });
+      const data = await callAppsScript({ action: 'markAttendance', rawScan: selectedStudentId, supervisorName: currentSupervisorName });
       if (data.success) {
         msgEl.style.color = 'var(--success)';
         msgEl.textContent = 'تم تسجيل حضور البرنامج ال' + data.session + (data.tier === 'مبكر' ? ' (مبكر ⭐)' : ' (عادي)') + ' — +' + data.pointsAdded + ' دينار';
@@ -2067,7 +2070,7 @@
     const errEl = document.getElementById('adjustError');
     btn.disabled = true; btn.textContent = 'جاري التأكيد...'; errEl.textContent = '';
     try {
-      const result = await callAppsScript({ action: 'adjustPoints', id: selectedStudentId, amount: pendingAmount });
+      const result = await callAppsScript({ action: 'adjustPoints', id: selectedStudentId, amount: pendingAmount, supervisorName: currentSupervisorName });
       if (!result.success) { errEl.textContent = result.error || 'تعذر التعديل'; return; }
 
       document.getElementById('detailBalance').textContent = result.newBalance + ' نقطة';
@@ -2098,7 +2101,10 @@
     if (!log || !log.length) { wrap.innerHTML = '<p class="list-empty">لا توجد عمليات مسجلة بعد</p>'; return; }
     wrap.innerHTML = log.map((entry) => `
       <div class="log-row">
-        <span class="log-date">${entry.date}</span>
+        <div>
+          <div style="font-weight:700;color:var(--indigo);font-size:.84rem;">${entry.reason || ''}</div>
+          <div class="log-date">${entry.date}</div>
+        </div>
         <span class="log-amount" style="color:${entry.amount > 0 ? 'var(--success)' : 'var(--error)'}">${entry.amount > 0 ? '+' : ''}${entry.amount}</span>
       </div>
     `).join('');
@@ -2192,7 +2198,7 @@
     let resultMsg;
     try {
       const ids = Array.from(selectedBulkIds);
-      const result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids });
+      const result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids, supervisorName: currentSupervisorName });
       if (!result.success) {
         resultMsg = result.error || 'تعذر تسجيل الحضور';
       } else {
@@ -2231,7 +2237,7 @@
     let failMsg = null;
     try {
       const ids = Array.from(selectedBulkIds);
-      const result = await callAppsScript({ action: 'bulkAdjustPoints', ids: ids, amount: bulkPendingAmount });
+      const result = await callAppsScript({ action: 'bulkAdjustPoints', ids: ids, amount: bulkPendingAmount, supervisorName: currentSupervisorName });
       if (!result.success) {
         failMsg = 'فشل، حاول مرة أخرى';
       } else {
