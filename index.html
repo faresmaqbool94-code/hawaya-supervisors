@@ -294,10 +294,41 @@
 </head>
 <body>
 
-<div id="appView">
+<!-- ===================== شاشة تسجيل دخول المشرف ===================== -->
+<div id="supervisorLoginView" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 16px;">
+  <div class="login-card" style="width:100%;max-width:420px;background:var(--card);border-radius:var(--radius);padding:30px 26px 34px;box-shadow:0 18px 50px -12px rgba(53,40,104,.22);">
+    <img class="app-logo" id="loginLogoImg" alt="هواية" style="display:block;width:100%;max-width:170px;margin:0 auto 16px;">
+    <h1 style="font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.45rem;color:var(--indigo);text-align:center;margin:0 0 6px;">تسجيل دخول المشرف</h1>
+    <p style="text-align:center;color:var(--text-muted);font-size:.9rem;margin:0 0 22px;">اختر اسمك وأدخل رقمك السري</p>
+    <form id="supervisorLoginForm">
+      <label>اسمك
+        <select id="supervisorNameSelect" required>
+          <option value="" disabled selected>اختر اسمك</option>
+          <option>فارس مقبول</option>
+          <option>ناصر الصياح</option>
+          <option>عبدالرحمن بامشموس</option>
+          <option>بشارة الزبير</option>
+          <option>عبدالعزيز الجامع</option>
+          <option>فهد الخضير</option>
+          <option>أسامة نور</option>
+          <option>هادي باشا</option>
+          <option>معتصم عماد</option>
+        </select>
+      </label>
+      <label>الرقم السري<input type="text" id="supervisorPinInput" inputmode="numeric" maxlength="4" placeholder="٤ أرقام" required></label>
+      <button type="submit" id="supervisorLoginBtn">دخول</button>
+      <p class="error" id="supervisorLoginError"></p>
+    </form>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
   <div class="app-header">
     <img id="headerLogoImg" class="header-logo" alt="هواية">
-    <button type="button" id="headerBackBtn" class="header-back-btn hidden" aria-label="رجوع">←</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button type="button" id="supervisorLogoutBtn" class="header-back-btn" aria-label="تسجيل خروج" style="font-size:1.1rem;">🚪</button>
+      <button type="button" id="headerBackBtn" class="header-back-btn hidden" aria-label="رجوع">←</button>
+    </div>
   </div>
 
   <!-- نافذة شرح التثبيت على آيفون (مشتركة بكل التبويبات) -->
@@ -313,8 +344,8 @@
 
   <div class="pages-viewport" id="pagesViewport">
 
-    <!-- ============ 0) التسجيل ============ -->
-    <div class="page-panel" data-page="0">
+    <!-- ============ 3) التسجيل ============ -->
+    <div class="page-panel" data-page="3">
       <div class="card">
         <button type="button" id="installBtn" class="install-btn hidden">📲 ثبّت التطبيق على جوالك</button>
         <div class="welcome-pill">أهلًا بك، يا مشرف هواية ✨</div>
@@ -497,8 +528,8 @@
       </div>
     </div>
 
-    <!-- ============ 3) رصيد الطلاب ============ -->
-    <div class="page-panel" data-page="3">
+    <!-- ============ 0) رصيد الطلاب ============ -->
+    <div class="page-panel" data-page="0">
 
       <!-- القائمة (افتراضي) -->
       <div id="balanceListView">
@@ -617,10 +648,10 @@
   </div>
 
   <div class="bottom-nav">
-    <button class="nav-btn active" data-index="0"><span class="nav-ic">📝</span><span>التسجيل</span></button>
+    <button class="nav-btn active" data-index="0"><span class="nav-ic">💰</span><span>رصيد الطلاب</span></button>
     <button class="nav-btn" data-index="1"><span class="nav-ic">📣</span><span>الإعلانات</span></button>
     <button class="nav-btn" data-index="2"><span class="nav-ic">🎁</span><span>الجوائز</span></button>
-    <button class="nav-btn" data-index="3"><span class="nav-ic">💰</span><span>رصيد الطلاب</span></button>
+    <button class="nav-btn" data-index="3"><span class="nav-ic">📝</span><span>التسجيل</span></button>
   </div>
 
   <!-- شريط الإجراء الجماعي — يظهر فقط لو فيه طلاب محددين بالقائمة -->
@@ -669,6 +700,59 @@
   const LOGO_SRC = 'logo.png';
   document.querySelectorAll('.app-logo').forEach((img) => { img.src = LOGO_SRC; });
 
+  /* ====================================================================
+     تسجيل دخول المشرف — اسم من قائمة + رقم سري 4 أرقام، يبقى محفوظ
+     بنفس الجهاز لين يضغط تسجيل خروج بنفسه
+     ==================================================================== */
+  const SUPERVISORS = {
+    'فارس مقبول': '7142',
+    'ناصر الصياح': '5839',
+    'عبدالرحمن بامشموس': '2967',
+    'بشارة الزبير': '4051',
+    'عبدالعزيز الجامع': '8374',
+    'فهد الخضير': '1592',
+    'أسامة نور': '6203',
+    'هادي باشا': '9486',
+    'معتصم عماد': '3718'
+  };
+  const SUPERVISOR_SESSION_KEY = 'hawaya_supervisor_session';
+
+  function showSupervisorLogin(errorText) {
+    document.getElementById('supervisorLoginView').classList.remove('hidden');
+    document.getElementById('appView').classList.add('hidden');
+    document.getElementById('supervisorLoginError').textContent = errorText || '';
+  }
+  function showSupervisorApp() {
+    document.getElementById('supervisorLoginView').classList.add('hidden');
+    document.getElementById('appView').classList.remove('hidden');
+  }
+
+  document.getElementById('supervisorLoginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('supervisorNameSelect').value;
+    const pin = document.getElementById('supervisorPinInput').value.trim();
+    const errEl = document.getElementById('supervisorLoginError');
+    errEl.textContent = '';
+
+    if (!name || !pin) { errEl.textContent = 'اختر اسمك وأدخل رقمك السري'; return; }
+    if (SUPERVISORS[name] !== pin) { errEl.textContent = 'الرقم السري غير صحيح'; return; }
+
+    localStorage.setItem(SUPERVISOR_SESSION_KEY, name);
+    showSupervisorApp();
+  });
+
+  document.getElementById('supervisorLogoutBtn').addEventListener('click', () => {
+    localStorage.removeItem(SUPERVISOR_SESSION_KEY);
+    document.getElementById('supervisorLoginForm').reset();
+    showSupervisorLogin();
+  });
+
+  (function initSupervisorAuth() {
+    const saved = localStorage.getItem(SUPERVISOR_SESSION_KEY);
+    if (saved && SUPERVISORS[saved]) showSupervisorApp();
+    else showSupervisorLogin();
+  })();
+
   /**
    * زر تثبيت التطبيق: بالأندرويد/كروم نستخدم نافذة التثبيت التلقائية
    * (beforeinstallprompt). بالآيفون/سفاري ما تدعم آبل هذا إطلاقًا، فنعرض
@@ -709,7 +793,7 @@
      التنقل بين التبويبات الثلاثة — نفس آلية تطبيق الطالب بالضبط:
      الانزلاق يكون بنفس جهة الأيقونة المضغوطة
      ==================================================================== */
-  const panels = Array.from(document.querySelectorAll('.page-panel'));
+  const panels = [0, 1, 2, 3].map((i) => document.querySelector('.page-panel[data-page="' + i + '"]'));
   const navButtons = document.querySelectorAll('.nav-btn');
   let currentIndex = 0;
 
@@ -757,13 +841,6 @@
       rewardsTabLoaded = true;
       loadRewards();
       loadPurchaseRequests();
-    }
-
-    // تحميل قائمة كل الطلاب مرة واحدة فقط أول ما يُفتح تبويب رصيد الطلاب
-    // (البحث والفلترة بعد هذا يصيران محليين فورًا، بدون أي اتصال جديد بالخادم)
-    if (newIndex === 3 && !balanceTabLoaded) {
-      balanceTabLoaded = true;
-      loadAllStudentsCache();
     }
   }
 
@@ -1631,6 +1708,12 @@
   let allLoadedStudents = [];
   let selectedBulkIds = new Set();
   let selectedStudentId = null;
+
+  // رصيد الطلاب صار التبويب الافتراضي الأول، فنحمّل قائمة الطلاب فورًا
+  // عند فتح الصفحة، بدل انتظار ضغطة على التبويب (ما يحتاجها الآن أصلًا)
+  balanceTabLoaded = true;
+  loadAllStudentsCache();
+
   let pendingAmount = null;
   let bulkPendingAmount = null;
   let presentOnlyActive = false;
