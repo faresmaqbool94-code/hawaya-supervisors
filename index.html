@@ -541,11 +541,47 @@
         <div class="card">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
             <div id="detailAvatar" class="list-item-thumb" style="width:60px;height:60px;font-size:1.6rem;">🧒</div>
-            <div>
+            <div style="flex:1;min-width:0;">
               <div style="font-weight:800;color:var(--indigo);font-size:1.05rem;" id="detailName"></div>
               <div style="font-size:.82rem;color:var(--text-muted);" id="detailStage"></div>
             </div>
+            <button type="button" id="editStudentBtn" class="icon-btn">✏️</button>
           </div>
+
+          <div id="editStudentForm" class="hidden" style="margin-bottom:16px;">
+            <label>اسم الطالب<input type="text" id="editStudentName"></label>
+            <label>المرحلة الدراسية
+              <select id="editStudentStage">
+                <optgroup label="ابتدائي">
+                  <option>أول ابتدائي</option><option>ثاني ابتدائي</option>
+                  <option>ثالث ابتدائي</option><option>رابع ابتدائي</option>
+                  <option>خامس ابتدائي</option><option>سادس ابتدائي</option>
+                </optgroup>
+                <optgroup label="متوسط">
+                  <option>أول متوسط</option><option>ثاني متوسط</option><option>ثالث متوسط</option>
+                </optgroup>
+                <optgroup label="ثانوي">
+                  <option>أول ثانوي</option><option>ثاني ثانوي</option><option>ثالث ثانوي</option>
+                </optgroup>
+              </select>
+            </label>
+            <label>
+              صورة جديدة (اختياري — تترك صورته الحالية لو لم تختر صورة جديدة)
+              <div class="photo-source-buttons">
+                <button type="button" id="editStudentCameraBtn" class="photo-source-btn">📷 صوّر بالكاميرا</button>
+                <button type="button" id="editStudentGalleryBtn" class="photo-source-btn">🖼️ اختر من المعرض</button>
+              </div>
+              <input type="file" id="editStudentImageCamera" accept="image/*" capture="environment" class="hidden">
+              <input type="file" id="editStudentImageGallery" accept="image/*" class="hidden">
+            </label>
+            <div id="editStudentImagePreviewWrap" class="hidden">
+              <img id="editStudentImagePreview" class="image-preview" alt="معاينة الصورة الجديدة">
+            </div>
+            <button type="button" id="saveStudentEditBtn">💾 حفظ التعديلات</button>
+            <button type="button" id="cancelStudentEditBtn" class="btn-secondary">إلغاء</button>
+            <p class="error" id="editStudentError"></p>
+          </div>
+
           <div class="balance-display" id="detailBalance">0</div>
 
           <button type="button" id="manualAttendanceBtn" class="btn-secondary" style="margin-bottom:14px;">✅ تسجيل حضور الآن</button>
@@ -1734,6 +1770,7 @@
     pendingAmount = null;
     updatePendingDisplay();
     document.getElementById('customAmountInput').classList.add('hidden');
+    document.getElementById('editStudentForm').classList.add('hidden');
 
     document.getElementById('detailName').textContent = student.name;
     document.getElementById('detailStage').textContent = student.stage;
@@ -1756,6 +1793,106 @@
     document.getElementById('headerBackBtn').classList.add('hidden');
     selectedStudentId = null;
     filterAndRenderBalanceStudents(); // تحديث الأرصدة المعروضة بالقائمة فورًا بعد أي تعديل
+  });
+
+  // ===== تعديل بيانات الطالب (الاسم / المرحلة / الصورة) =====
+  let editStudentImageBase64 = null;
+  const editStudentCameraBtn = document.getElementById('editStudentCameraBtn');
+  const editStudentGalleryBtn = document.getElementById('editStudentGalleryBtn');
+  const editStudentCameraInput = document.getElementById('editStudentImageCamera');
+  const editStudentGalleryInput = document.getElementById('editStudentImageGallery');
+
+  document.getElementById('editStudentBtn').addEventListener('click', () => {
+    const student = allLoadedStudents.find((s) => s.id === selectedStudentId);
+    if (!student) return;
+
+    document.getElementById('editStudentName').value = student.name;
+    document.getElementById('editStudentStage').value = student.stage;
+    editStudentImageBase64 = null;
+    editStudentCameraBtn.classList.remove('active');
+    editStudentGalleryBtn.classList.remove('active');
+
+    const previewWrap = document.getElementById('editStudentImagePreviewWrap');
+    if (student.imageUrl) {
+      document.getElementById('editStudentImagePreview').src = student.imageUrl;
+      previewWrap.classList.remove('hidden');
+    } else {
+      previewWrap.classList.add('hidden');
+    }
+
+    document.getElementById('editStudentError').textContent = '';
+    document.getElementById('editStudentForm').classList.remove('hidden');
+  });
+
+  document.getElementById('cancelStudentEditBtn').addEventListener('click', () => {
+    document.getElementById('editStudentForm').classList.add('hidden');
+  });
+
+  editStudentCameraBtn.addEventListener('click', () => editStudentCameraInput.click());
+  editStudentGalleryBtn.addEventListener('click', () => editStudentGalleryInput.click());
+
+  async function handleEditStudentImageSelected(file, sourceBtn) {
+    const wrap = document.getElementById('editStudentImagePreviewWrap');
+    editStudentCameraBtn.classList.remove('active');
+    editStudentGalleryBtn.classList.remove('active');
+    if (!file) return;
+    try {
+      editStudentImageBase64 = await compressImage(file, 800, 0.7);
+      document.getElementById('editStudentImagePreview').src = 'data:image/jpeg;base64,' + editStudentImageBase64;
+      wrap.classList.remove('hidden');
+      if (sourceBtn) sourceBtn.classList.add('active');
+    } catch (_) {
+      document.getElementById('editStudentError').textContent = 'تعذر تحميل الصورة، يمكنك المتابعة بدونها';
+      editStudentImageBase64 = null;
+    }
+  }
+  editStudentCameraInput.addEventListener('change', (e) => handleEditStudentImageSelected(e.target.files[0], editStudentCameraBtn));
+  editStudentGalleryInput.addEventListener('change', (e) => handleEditStudentImageSelected(e.target.files[0], editStudentGalleryBtn));
+
+  document.getElementById('saveStudentEditBtn').addEventListener('click', async () => {
+    if (!selectedStudentId) return;
+    const name = document.getElementById('editStudentName').value.trim();
+    const stage = document.getElementById('editStudentStage').value;
+    const btn = document.getElementById('saveStudentEditBtn');
+    const errEl = document.getElementById('editStudentError');
+    errEl.textContent = '';
+
+    if (!name || !stage) { errEl.textContent = 'الاسم والمرحلة مطلوبان'; return; }
+
+    btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+    try {
+      let imageUrl = '';
+      if (editStudentImageBase64) {
+        imageUrl = await uploadToCloudinary(editStudentImageBase64, 'student-photos', 'image/jpeg');
+      }
+
+      const result = await callAppsScript({
+        action: 'updateStudentInfo', id: selectedStudentId, name: name, stage: stage, imageUrl: imageUrl
+      });
+      if (!result.success) { errEl.textContent = result.error || 'تعذر حفظ التعديلات'; return; }
+
+      document.getElementById('detailName').textContent = name;
+      document.getElementById('detailStage').textContent = stage;
+      const avatar = document.getElementById('detailAvatar');
+      const finalImageUrl = imageUrl || (allLoadedStudents.find((s) => s.id === selectedStudentId) || {}).imageUrl;
+      if (finalImageUrl) { avatar.style.backgroundImage = "url('" + finalImageUrl + "')"; avatar.textContent = ''; }
+
+      [allLoadedStudents, allStudentsCache].forEach((list) => {
+        if (!list) return;
+        const idx = list.findIndex((s) => s.id === selectedStudentId);
+        if (idx !== -1) {
+          list[idx].name = name;
+          list[idx].stage = stage;
+          if (imageUrl) list[idx].imageUrl = imageUrl;
+        }
+      });
+
+      document.getElementById('editStudentForm').classList.add('hidden');
+    } catch (err) {
+      errEl.textContent = 'حدث خطأ في الاتصال';
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 حفظ التعديلات';
+    }
   });
 
   // ===== تسجيل حضور يدوي (نفس قواعد محطة الحضور: صباحي/مسائي وحدود الوقت) =====
