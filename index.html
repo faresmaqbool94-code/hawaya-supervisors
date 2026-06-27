@@ -272,6 +272,10 @@
   }
   #bulkSelectedCount{display:block;text-align:center;font-weight:800;color:var(--indigo);margin-bottom:10px;font-size:.88rem;}
 
+  /* مسافة إضافية أسفل قائمة الطلاب لما يظهر شريط التحديد الجماعي، عشان
+     آخر الطلاب بالقائمة ما ينغطّوا بالشريط ويقدر يكمل سكرول لهم */
+  #balanceListView.bulk-bar-open #balanceStudentsList{padding-bottom:230px;}
+
   /* مربع تحديد الكل الحقيقي + زر فلتر الحاضرين فقط */
   .balance-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
   .select-all-label{
@@ -1905,12 +1909,14 @@
     const count = selectedBulkIds.size;
     if (count === 0) {
       bar.classList.add('hidden');
+      document.getElementById('balanceListView').classList.remove('bulk-bar-open');
       bulkPendingAmount = null;
       updateBulkPendingDisplay();
       document.getElementById('bulkCustomAmountInput').classList.add('hidden');
       return;
     }
     bar.classList.remove('hidden');
+    document.getElementById('balanceListView').classList.add('bulk-bar-open');
     document.getElementById('bulkSelectedCount').textContent = count + ' طالب محدد';
   }
 
