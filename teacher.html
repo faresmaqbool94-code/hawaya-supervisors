@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رحلة هواية - شاشة المعلم</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --indigo:#352868; --text:#2B2640; --text-muted:#79738F; --bg:#F4F2FA; --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;background:var(--bg);font-family:'Almarai', sans-serif;color:var(--text);
+    overflow-x:hidden;
+  }
+
+  .top-bar{display:flex;align-items:center;justify-content:space-between;padding:18px 36px;}
+  .logo{height:64px;}
+  .clock{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:1.6rem;color:var(--indigo);font-weight:700;}
+
+  .leaderboard-strip{
+    display:flex;gap:18px;overflow-x:auto;padding:6px 36px 18px;align-items:flex-start;
+  }
+  .hero-card{flex:0 0 auto;text-align:center;width:96px;}
+  .hero-photo{
+    width:88px;height:88px;border-radius:22px;background-size:cover;background-position:center;
+    background-color:#EFEAF8;border:4px solid #fff;box-shadow:0 6px 0 0 #E3DEF0;
+    display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;
+  }
+  .hero-rank{
+    position:absolute;top:-10px;right:-10px;width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(180deg,#FFD976,#E8A720);color:#5A4300;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;
+    box-shadow:0 3px 0 0 #C98A1F;font-family:'Baloo Bhaijaan 2', sans-serif;
+  }
+  .hero-name{font-size:.95rem;font-weight:800;color:var(--indigo);margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .stage-tabs{display:flex;gap:12px;padding:0 36px 18px;flex-wrap:wrap;}
+  .stage-tab{
+    padding:14px 28px;border-radius:999px;border:none;background:#fff;color:var(--text-muted);
+    font-family:'Almarai', sans-serif;font-weight:800;font-size:1.05rem;cursor:pointer;
+    box-shadow:0 4px 0 0 #E3DEF0;
+  }
+  .stage-tab.active{background:var(--indigo);color:#fff;box-shadow:0 4px 0 0 #1F1738;}
+
+  .actions-row{display:flex;gap:18px;padding:0 36px 26px;flex-wrap:wrap;}
+  .action-btn{
+    width:132px;height:132px;border-radius:30px;border:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    color:#fff;font-family:'Almarai', sans-serif;font-weight:800;font-size:1rem;text-align:center;
+    transition:transform .1s ease;position:relative;padding:8px;
+  }
+  .action-btn:active{transform:translateY(5px);}
+  .action-btn .pts{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:.85rem;opacity:.92;}
+  .action-btn.active-now{outline:6px solid #fff;outline-offset:-12px;}
+  .action-btn.active-now::after{
+    content:'●';position:absolute;top:10px;left:14px;font-size:1.4rem;color:#fff;
+  }
+
+  .section-label{padding:0 36px;font-family:'Baloo Bhaijaan 2', sans-serif;font-size:1.2rem;color:var(--indigo);margin-bottom:10px;}
+
+  .students-grid{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
+    gap:16px;padding:0 36px 26px;
+  }
+  .student-card{
+    background:#fff;border-radius:22px;padding:14px;text-align:center;cursor:pointer;
+    box-shadow:0 5px 0 0 #E9E5F2;transition:transform .1s ease, box-shadow .1s ease;
+    position:relative;
+  }
+  .student-card:active{transform:translateY(3px);}
+  .student-card.absent{opacity:.4;cursor:not-allowed;}
+  .student-photo{
+    width:72px;height:72px;border-radius:18px;margin:0 auto 10px;background-size:cover;background-position:center;
+    background-color:#F3F0FA;display:flex;align-items:center;justify-content:center;font-size:1.7rem;
+  }
+  .student-name{font-size:.96rem;font-weight:800;color:var(--indigo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .student-badge{
+    position:absolute;top:8px;left:8px;width:30px;height:30px;border-radius:50%;
+    display:none;align-items:center;justify-content:center;color:#fff;font-size:1rem;font-weight:800;
+    box-shadow:0 2px 0 0 rgba(0,0,0,.15);
+  }
+  .student-card.selected .student-badge{display:flex;}
+  .student-card.selected{box-shadow:0 0 0 4px var(--sel-color, #2E9E6C);}
+  .present-badge{
+    position:absolute;bottom:8px;right:8px;font-size:.7rem;font-weight:800;
+    background:#EAF7EF;color:#27500A;padding:3px 9px;border-radius:999px;
+  }
+  .absent-badge{
+    position:absolute;bottom:8px;right:8px;font-size:.7rem;font-weight:800;
+    background:#F1EFE8;color:#5F5E5A;padding:3px 9px;border-radius:999px;
+  }
+
+  .confirm-bar{
+    position:sticky;bottom:0;background:#fff;box-shadow:0 -8px 24px -12px rgba(53,40,104,.2);
+    padding:18px 36px;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  }
+  .confirm-count{font-family:'Baloo Bhaijaan 2', sans-serif;font-size:1.2rem;color:var(--indigo);}
+  .confirm-btn{
+    flex-shrink:0;padding:18px 48px;border-radius:999px;border:none;cursor:pointer;
+    background:linear-gradient(180deg,#3FAE7E,#2E9E6C);color:#fff;
+    font-family:'Baloo Bhaijaan 2', sans-serif;font-weight:700;font-size:1.2rem;
+    box-shadow:0 6px 0 0 #1F6B4A;
+  }
+  .confirm-btn:disabled{background:#D3D1C7;box-shadow:0 6px 0 0 #B4B2A9;cursor:not-allowed;}
+  .confirm-btn:active:not(:disabled){transform:translateY(4px);}
+
+  .empty-hint{padding:30px 36px;color:var(--text-muted);font-size:1.05rem;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <img class="logo" id="headerLogo" alt="هواية">
+  <div class="clock" id="clockDisplay"></div>
+</div>
+
+<div class="leaderboard-strip" id="leaderboardStrip"></div>
+
+<div class="stage-tabs" id="stageTabs">
+  <button type="button" class="stage-tab active" data-stages="all">الكل</button>
+  <button type="button" class="stage-tab" data-stages="أول ابتدائي">أول ابتدائي</button>
+  <button type="button" class="stage-tab" data-stages="ثاني وثالث">ثاني وثالث ابتدائي</button>
+</div>
+
+<div class="actions-row" id="actionsRow"></div>
+
+<div class="section-label" id="sectionLabel">اختر إنجازًا أو "حاضر" من الأعلى لبدء التحديد</div>
+<div class="students-grid" id="studentsGrid"></div>
+
+<div class="confirm-bar">
+  <span class="confirm-count" id="confirmCount"></span>
+  <button type="button" class="confirm-btn" id="confirmBtn" disabled>تأكيد التحديد</button>
+</div>
+
+<script>
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
+  const LOGO_SRC = 'delet.png';
+  document.getElementById('headerLogo').src = LOGO_SRC;
+
+  const ALL_STAGES = ['أول ابتدائي', 'ثاني ابتدائي', 'ثالث ابتدائي'];
+
+  const ACTION_COLORS = {
+    'حاضر': { top: '#6FD9A8', bottom: '#2E9E6C', shadow: '#1F6B4A' },
+    'حلقة': { top: '#A993CC', bottom: '#7C5BA6', shadow: '#56407A' },
+    'لعب_نظيف': { top: '#6FA3E0', bottom: '#2F6FBF', shadow: '#1E4F8A' },
+    'ابداع': { top: '#F8AFC9', bottom: '#F178A8', shadow: '#B3527B' },
+    'كرم': { top: '#FFD466', bottom: '#E8A720', shadow: '#A87814' },
+    'اذان_وكلمة': { top: '#6FD6CC', bottom: '#2BA8A0', shadow: '#1C7972' },
+    'مهاري': { top: '#F4AD7C', bottom: '#E07A3F', shadow: '#A2562B' },
+    'تعليمي': { top: '#82BBEF', bottom: '#3D8FD6', shadow: '#2A6499' },
+    'قيمي': { top: '#C2A3E8', bottom: '#9466C4', shadow: '#684790' },
+    'تنافسي': { top: '#F09999', bottom: '#D85C5C', shadow: '#9B3F3F' }
+  };
+
+  let dashboardData = null;
+  let activeKey = null;
+  let selectedIds = new Set();
+  let currentStages = ALL_STAGES;
+
+  function updateClock() {
+    document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  async function callAppsScript(payload) {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  function renderLeaderboard(top10) {
+    const wrap = document.getElementById('leaderboardStrip');
+    if (!top10 || !top10.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = top10.map((s) => `
+      <div class="hero-card">
+        <div class="hero-photo" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : ''}">${s.imageUrl ? '' : '🧒'}</div>
+        <div class="hero-rank">${s.rank}</div>
+        <div class="hero-name">${s.name}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderActionButtons() {
+    const wrap = document.getElementById('actionsRow');
+    const items = [{ key: 'حاضر', label: 'حاضر', points: null }]
+      .concat(dashboardData.dailyAchievements.map((a) => ({ key: a.key, label: a.label, points: a.points })))
+      .concat(dashboardData.weeklyAchievements.map((a) => ({ key: a.key, label: a.label, points: a.points })));
+
+    wrap.innerHTML = items.map((item) => {
+      const c = ACTION_COLORS[item.key] || ACTION_COLORS['حلقة'];
+      const isActive = activeKey === item.key;
+      return `<button type="button" class="action-btn ${isActive ? 'active-now' : ''}" data-key="${item.key}"
+        style="background:linear-gradient(180deg, ${c.top}, ${c.bottom});box-shadow:0 8px 0 0 ${c.shadow}, 0 14px 22px -10px rgba(0,0,0,.3);">
+        <span>${item.label}</span>
+        ${item.points ? `<span class="pts">+${item.points} دينار</span>` : ''}
+      </button>`;
+    }).join('');
+
+    wrap.querySelectorAll('.action-btn').forEach((btn) => {
+      btn.addEventListener('click', () => activateKey(btn.dataset.key));
+    });
+  }
+
+  function activateKey(key) {
+    activeKey = key;
+    selectedIds = new Set();
+    renderActionButtons();
+    renderStudents();
+    updateConfirmBar();
+    const label = key === 'حاضر' ? 'حاضر' :
+      (dashboardData.dailyAchievements.concat(dashboardData.weeklyAchievements).find((a) => a.key === key) || {}).label;
+    document.getElementById('sectionLabel').textContent = 'حدد الطلاب لـ "' + label + '" ثم اضغط تأكيد بالأسفل';
+  }
+
+  function isDoneToday(studentId) {
+    if (activeKey === 'حاضر') {
+      const s = dashboardData.students.find((x) => x.id === studentId);
+      return s ? s.present : false;
+    }
+    const map = dashboardData.achievementDoneMap[activeKey] || {};
+    return !!map[studentId];
+  }
+
+  function renderStudents() {
+    const grid = document.getElementById('studentsGrid');
+    const list = dashboardData.students.filter((s) => currentStages.indexOf(s.stage) !== -1);
+
+    if (!list.length) {
+      grid.innerHTML = '';
+      document.getElementById('sectionLabel').nextElementSibling.outerHTML = '<p class="empty-hint">لا يوجد طلاب بهذي المرحلة</p>';
+      return;
+    }
+
+    const colorInfo = ACTION_COLORS[activeKey] || ACTION_COLORS['حلقة'];
+
+    grid.innerHTML = list.map((s) => {
+      const done = activeKey ? isDoneToday(s.id) : false;
+      const canTap = activeKey && (activeKey === 'حاضر' || s.present) && !done;
+      const isSelected = selectedIds.has(s.id) || done;
+      const cardClasses = ['student-card'];
+      if (!activeKey || activeKey !== 'حاضر') { if (!s.present && activeKey) cardClasses.push('absent'); }
+      if (isSelected) cardClasses.push('selected');
+
+      let statusBadge = '';
+      if (activeKey !== 'حاضر') {
+        statusBadge = s.present
+          ? '<span class="present-badge">حاضر</span>'
+          : '<span class="absent-badge">غائب</span>';
+      }
+
+      return `<div class="${cardClasses.join(' ')}" data-id="${s.id}" data-tappable="${canTap ? '1' : '0'}"
+        style="--sel-color:${colorInfo.bottom};">
+        <div class="student-badge" style="background:${colorInfo.bottom};">✓</div>
+        <div class="student-photo" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : ''}">${s.imageUrl ? '' : '🧒'}</div>
+        <div class="student-name">${s.name}</div>
+        ${statusBadge}
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('[data-tappable="1"]').forEach((card) => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.id;
+        if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+        card.classList.toggle('selected');
+        updateConfirmBar();
+      });
+    });
+  }
+
+  function updateConfirmBar() {
+    const count = selectedIds.size;
+    document.getElementById('confirmCount').textContent = count ? (count + ' طالب محدد') : '';
+    document.getElementById('confirmBtn').disabled = count === 0;
+  }
+
+  document.getElementById('confirmBtn').addEventListener('click', async () => {
+    if (!selectedIds.size || !activeKey) return;
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+
+    try {
+      const ids = Array.from(selectedIds);
+      let result;
+      if (activeKey === 'حاضر') {
+        result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids });
+      } else {
+        result = await callAppsScript({ action: 'teacherMarkAchievement', achievementKey: activeKey, studentIds: ids });
+      }
+
+      if (result.success) {
+        btn.textContent = '✅ تم الحفظ';
+        await loadDashboard();
+        renderActionButtons();
+        renderStudents();
+      } else {
+        btn.textContent = result.error || 'تعذر الحفظ';
+      }
+    } catch (_) {
+      btn.textContent = 'فشل الاتصال';
+    }
+
+    setTimeout(() => {
+      selectedIds = new Set();
+      updateConfirmBar();
+      btn.textContent = 'تأكيد التحديد';
+    }, 1800);
+  });
+
+  document.querySelectorAll('.stage-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.stage-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      const key = tab.dataset.stages;
+      if (key === 'all') currentStages = ALL_STAGES;
+      else if (key === 'ثاني وثالث') currentStages = ['ثاني ابتدائي', 'ثالث ابتدائي'];
+      else currentStages = [key];
+      renderStudents();
+    });
+  });
+
+  async function loadDashboard() {
+    const data = await callAppsScript({ action: 'getTeacherDashboardData', stages: ALL_STAGES });
+    if (data.success) dashboardData = data;
+  }
+
+  async function init() {
+    await loadDashboard();
+    if (!dashboardData) return;
+    renderLeaderboard(dashboardData.top10);
+    renderActionButtons();
+    renderStudents();
+  }
+
+  init();
+  setInterval(loadDashboard, 60000);
+</script>
+</body>
+</html>
