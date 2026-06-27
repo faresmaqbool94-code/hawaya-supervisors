@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>رحلة هواية - شاشة المعلم</title>
 <link rel="icon" type="image/png" href="logo.png">
+<link rel="manifest" href="teacher-manifest.json">
+<meta name="theme-color" content="#352868">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -78,6 +80,7 @@
     background-color:#F3F0FA;display:flex;align-items:center;justify-content:center;font-size:1.4rem;
   }
   .student-row-name{flex:1;min-width:0;font-size:1.08rem;font-weight:800;color:var(--indigo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .student-row-rank{font-size:.8rem;font-weight:700;color:var(--text-muted);margin-right:8px;}
   .status-pill{
     flex-shrink:0;font-size:.82rem;font-weight:800;padding:6px 14px;border-radius:999px;
   }
@@ -129,7 +132,7 @@
     <div class="students-list" id="studentsGrid"></div>
   </div>
   <div class="leaderboard-panel">
-    <div class="leaderboard-title">⭐ العشرة الأبطال</div>
+    <div class="leaderboard-title">⭐ الخمسة الأبطال</div>
     <div id="leaderboardStrip"></div>
   </div>
 </div>
@@ -141,8 +144,14 @@
 
 <script>
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
-  const LOGO_SRC = 'delet.png';
+  const LOGO_SRC = 'logo.png';
   document.getElementById('headerLogo').src = LOGO_SRC;
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('teacher-sw.js').catch(() => {});
+    });
+  }
 
   const ALL_STAGES = ['أول ابتدائي', 'ثاني ابتدائي', 'ثالث ابتدائي'];
 
@@ -260,9 +269,9 @@
 
       return `<div class="${rowClasses.join(' ')}" data-id="${s.id}" data-tappable="${canTap ? '1' : '0'}" style="--sel-color:${colorInfo.bottom};">
         <div class="student-row-photo" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : ''}">${s.imageUrl ? '' : '🧒'}</div>
-        <div class="student-row-name">${s.name}</div>
+        <div class="student-row-name">${s.name}<span class="student-row-rank">#${s.rank}</span></div>
         ${statusPill}
-        <div class="check-circle">✓</div>
+        <div class="check-circle">${isSelected ? '✓' : ''}</div>
       </div>`;
     }).join('');
 
