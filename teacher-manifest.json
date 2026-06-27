@@ -1,0 +1,12 @@
+{
+  "name": "رحلة هواية - شاشة المعلم",
+  "short_name": "هواية المعلم",
+  "start_url": "./teacher.html",
+  "display": "standalone",
+  "background_color": "#F4F2FA",
+  "theme_color": "#352868",
+  "icons": [
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ]
+}
