@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقرير باركودات الطلاب</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{ --indigo:#352868; --violet:#7C5BA6; --text:#2B2640; --text-muted:#79738F; }
+  *{box-sizing:border-box;}
+  body{font-family:'Almarai', Tahoma, sans-serif;margin:0;padding:24px;direction:rtl;color:var(--text);background:#F6F4FB;}
+  .hidden{display:none !important;}
+
+  /* بوابة دخول مبسّطة — تتعرف تلقائيًا لو نفس المشرف مسجّل دخوله بتطبيق المشرفين بنفس الجهاز */
+  #gateView{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+  .gate-card{background:#fff;border-radius:22px;padding:30px 26px;max-width:380px;width:100%;box-shadow:0 18px 50px -12px rgba(53,40,104,.22);}
+  .gate-card h1{font-size:1.25rem;color:var(--indigo);text-align:center;margin:0 0 18px;}
+  .gate-card label{display:block;font-size:.88rem;font-weight:700;color:var(--indigo);margin-bottom:16px;}
+  .gate-card select, .gate-card input{width:100%;margin-top:8px;padding:13px 14px;border-radius:14px;border:2px solid #E7E2F2;background:#FBFAFD;font-family:'Almarai', sans-serif;font-size:1rem;}
+  .gate-card button{width:100%;padding:14px;border:none;border-radius:999px;background:var(--indigo);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;}
+  .gate-error{color:#D1485B;font-size:.85rem;text-align:center;min-height:1.2em;margin-top:12px;font-weight:700;}
+
+  .top-actions{text-align:center;margin-bottom:24px;}
+  .print-btn{padding:14px 30px;border:none;border-radius:999px;background:var(--indigo);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;}
+
+  .stage-section{page-break-after:always;background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;}
+  .stage-section:last-child{page-break-after:auto;}
+  .stage-title{font-size:1.4rem;font-weight:800;color:var(--indigo);text-align:center;margin:0 0 16px;border-bottom:2px solid var(--violet);padding-bottom:10px;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:#F3F0FA;color:var(--indigo);padding:10px;text-align:right;border:1px solid #E7E2F2;font-size:.95rem;}
+  td{padding:10px;border:1px solid #E7E2F2;vertical-align:middle;}
+  .name-cell{font-weight:700;font-size:1rem;}
+  .qr-cell{text-align:center;width:120px;}
+  .qr-cell canvas, .qr-cell img{width:90px !important;height:90px !important;}
+
+  @media print{
+    body{background:#fff;padding:0;}
+    .top-actions{display:none;}
+    .stage-section{box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- بوابة دخول مبسّطة (نفس أرقام مشرفي تطبيق المشرفين) -->
+<div id="gateView">
+  <div class="gate-card">
+    <h1>تقرير باركودات الطلاب 🔒</h1>
+    <form id="gateForm">
+      <label>اسمك
+        <select id="gateNameSelect" required>
+          <option value="" disabled selected>اختر اسمك</option>
+          <option>فارس مقبول</option>
+          <option>ناصر الصياح</option>
+          <option>عبدالرحمن بامشموس</option>
+          <option>بشارة الزبير</option>
+          <option>عبدالعزيز الجامع</option>
+          <option>فهد الخضير</option>
+          <option>أسامة نور</option>
+          <option>هادي باشا</option>
+          <option>معتصم عماد</option>
+        </select>
+      </label>
+      <label>الرقم السري<input type="text" id="gatePinInput" inputmode="numeric" maxlength="4" placeholder="٤ أرقام" required></label>
+      <button type="submit">عرض التقرير</button>
+      <p class="gate-error" id="gateError"></p>
+    </form>
+  </div>
+</div>
+
+<div id="reportView" class="hidden">
+  <div class="top-actions">
+    <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+  </div>
+  <div id="reportContainer">
+    <p style="text-align:center;color:var(--text-muted);">جاري تحميل التقرير...</p>
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
+  const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/hawaya-student/';
+
+  // نفس قائمة مشرفي تطبيق المشرفين — يحدّثها فارس بنفس مكانين لو زاد/قلّ مشرف
+  const SUPERVISORS = {
+    'فارس مقبول': '7142', 'ناصر الصياح': '5839', 'عبدالرحمن بامشموس': '2967',
+    'بشارة الزبير': '4051', 'عبدالعزيز الجامع': '8374', 'فهد الخضير': '1592',
+    'أسامة نور': '6203', 'هادي باشا': '9486', 'معتصم عماد': '3718'
+  };
+  const SUPERVISOR_SESSION_KEY = 'hawaya_supervisor_session'; // نفس مفتاح جلسة تطبيق المشرفين
+
+  function showReport() {
+    document.getElementById('gateView').classList.add('hidden');
+    document.getElementById('reportView').classList.remove('hidden');
+    loadReport();
+  }
+
+  document.getElementById('gateForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('gateNameSelect').value;
+    const pin = document.getElementById('gatePinInput').value.trim();
+    const errEl = document.getElementById('gateError');
+    errEl.textContent = '';
+
+    if (!name || !pin) { errEl.textContent = 'اختر اسمك وأدخل رقمك السري'; return; }
+    if (SUPERVISORS[name] !== pin) { errEl.textContent = 'الرقم السري غير صحيح'; return; }
+
+    localStorage.setItem(SUPERVISOR_SESSION_KEY, name);
+    showReport();
+  });
+
+  // لو نفس المشرف مسجّل دخوله بتطبيق المشرفين بنفس الجهاز/المتصفح، يدخل فورًا بدون طلب الرقم مرة ثانية
+  (function init() {
+    const saved = localStorage.getItem(SUPERVISOR_SESSION_KEY);
+    if (saved && SUPERVISORS[saved]) showReport();
+  })();
+
+  async function callAppsScript(payload) {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function loadReport() {
+    const container = document.getElementById('reportContainer');
+    try {
+      const data = await callAppsScript({ action: 'getAllStudentsForBarcodeReport' });
+      if (!data.success || !data.students.length) {
+        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);">لا يوجد طلاب مسجّلين بعد</p>';
+        return;
+      }
+
+      // تجميع حسب المرحلة، بنفس الترتيب الجاهز من الخادم
+      const groups = [];
+      let currentStage = null, currentGroup = null;
+      data.students.forEach((s) => {
+        if (s.stage !== currentStage) {
+          currentStage = s.stage;
+          currentGroup = { stage: s.stage, students: [] };
+          groups.push(currentGroup);
+        }
+        currentGroup.students.push(s);
+      });
+
+      container.innerHTML = groups.map((g, gi) => `
+        <div class="stage-section">
+          <div class="stage-title">${g.stage}</div>
+          <table>
+            <tr><th>المرحلة</th><th>الباركود</th></tr>
+            ${g.students.map((s, si) => `
+              <tr>
+                <td class="name-cell">${s.name}</td>
+                <td class="qr-cell"><div id="qr-${gi}-${si}"></div></td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      `).join('');
+
+      // توليد كل الباركودات بعد إدراج الجداول بالصفحة
+      groups.forEach((g, gi) => {
+        g.students.forEach((s, si) => {
+          const loginLink = STUDENT_APP_BASE_URL + '?id=' + s.id + '&pw=' + s.password;
+          new QRCode(document.getElementById('qr-' + gi + '-' + si), {
+            text: loginLink, width: 90, height: 90, colorDark: '#15101F', colorLight: '#ffffff'
+          });
+        });
+      });
+    } catch (err) {
+      container.innerHTML = '<p style="text-align:center;color:#D1485B;">تعذر تحميل التقرير، تحقق من الاتصال</p>';
+    }
+  }
+</script>
+</body>
+</html>
