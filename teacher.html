@@ -93,6 +93,13 @@
   .student-row.selected .check-circle{background:var(--sel-color, #2E9E6C);}
   .student-row.selected{background:#FBFAFD;}
 
+  .select-all-row{
+    display:none;align-items:center;gap:10px;padding:12px 16px;margin-bottom:8px;
+    border-radius:14px;background:#F3F0FA;cursor:pointer;font-weight:800;color:var(--indigo);
+  }
+  .select-all-row.show{display:flex;}
+  .select-all-row input{width:26px;height:26px;flex-shrink:0;accent-color:var(--indigo);}
+
   .confirm-bar{
     position:sticky;bottom:0;background:#fff;box-shadow:0 -8px 24px -12px rgba(53,40,104,.2);
     padding:18px 36px;display:flex;align-items:center;justify-content:space-between;gap:18px;
@@ -129,6 +136,10 @@
 
 <div style="display:flex;gap:18px;padding:0 36px 26px;align-items:flex-start;">
   <div class="students-panel" id="studentsPanel">
+    <label class="select-all-row" id="selectAllRow">
+      <input type="checkbox" id="selectAllCheckbox">
+      <span>الكل ✓</span>
+    </label>
     <div class="students-list" id="studentsGrid"></div>
   </div>
   <div class="leaderboard-panel">
@@ -190,10 +201,10 @@
     return res.json();
   }
 
-  function renderLeaderboard(top10) {
+  function renderLeaderboard(top5) {
     const wrap = document.getElementById('leaderboardStrip');
-    if (!top10 || !top10.length) { wrap.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:.9rem;">لا توجد بيانات كافية بعد</p>'; return; }
-    wrap.innerHTML = top10.map((s) => {
+    if (!top5 || !top5.length) { wrap.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:.9rem;">لا توجد بيانات كافية بعد</p>'; return; }
+    wrap.innerHTML = top5.map((s) => {
       const rankClass = s.rank === 1 ? '' : s.rank === 2 ? 'r2' : s.rank === 3 ? 'r3' : 'rest';
       return `
       <div class="hero-row">
@@ -248,21 +259,32 @@
   function renderStudents() {
     const grid = document.getElementById('studentsGrid');
     const list = dashboardData.students.filter((s) => currentStages.indexOf(s.stage) !== -1);
+    const selectAllRow = document.getElementById('selectAllRow');
 
     if (!list.length) {
       grid.innerHTML = '<p class="empty-hint">لا يوجد طلاب بهذي المرحلة</p>';
+      selectAllRow.classList.remove('show');
       return;
     }
 
+    // صف "تحديد الكل" يظهر فقط لما يكون فيه إنجاز/حاضر مفعّل حاليًا
+    selectAllRow.classList.toggle('show', !!activeKey);
+
     const colorInfo = ACTION_COLORS[activeKey] || ACTION_COLORS['حلقة'];
+    let tappableCount = 0, tappableSelectedCount = 0;
 
     grid.innerHTML = list.map((s) => {
       const done = activeKey ? isDoneToday(s.id) : false;
       const canTap = activeKey && (activeKey === 'حاضر' || s.present) && !done;
-      const isSelected = selectedIds.has(s.id) || done;
+      const isPending = selectedIds.has(s.id) && !done; // محدد الآن، لسا ما تأكد
       const rowClasses = ['student-row'];
       if (activeKey && activeKey !== 'حاضر' && !s.present) rowClasses.push('absent');
-      if (isSelected) rowClasses.push('selected');
+      if (done || isPending) rowClasses.push('selected'); // تلوين الدائرة بالحالتين
+
+      if (canTap) {
+        tappableCount++;
+        if (isPending) tappableSelectedCount++;
+      }
 
       const statusPill = activeKey !== 'حاضر'
         ? (s.present ? '<span class="status-pill present">حاضر</span>' : '<span class="status-pill absent-pill">غائب</span>')
@@ -272,15 +294,19 @@
         <div class="student-row-photo" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : ''}">${s.imageUrl ? '' : '🧒'}</div>
         <div class="student-row-name">${s.name}<span class="student-row-rank">#${s.rank}</span></div>
         ${statusPill}
-        <div class="check-circle">${isSelected ? '✓' : ''}</div>
+        <div class="check-circle">${done ? '✓' : ''}</div>
       </div>`;
     }).join('');
+
+    // مزامنة مربع "تحديد الكل": محدد فقط لو كل الطلاب القابلين للتحديد محددين بالفعل
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    selectAllCheckbox.checked = tappableCount > 0 && tappableCount === tappableSelectedCount;
 
     grid.querySelectorAll('[data-tappable="1"]').forEach((row) => {
       row.addEventListener('click', () => {
         const id = row.dataset.id;
         if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
-        row.classList.toggle('selected');
+        renderStudents();
         updateConfirmBar();
       });
     });
@@ -292,11 +318,24 @@
     document.getElementById('confirmBtn').disabled = count === 0;
   }
 
+  document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+    const list = dashboardData.students.filter((s) => currentStages.indexOf(s.stage) !== -1);
+    list.forEach((s) => {
+      const done = activeKey ? isDoneToday(s.id) : false;
+      const canTap = activeKey && (activeKey === 'حاضر' || s.present) && !done;
+      if (!canTap) return; // الغائبين والمؤكدين من قبل لا يتأثرون بتحديد الكل
+      if (e.target.checked) selectedIds.add(s.id); else selectedIds.delete(s.id);
+    });
+    renderStudents();
+    updateConfirmBar();
+  });
+
   document.getElementById('confirmBtn').addEventListener('click', async () => {
     if (!selectedIds.size || !activeKey) return;
     const btn = document.getElementById('confirmBtn');
     btn.disabled = true;
     btn.textContent = 'جاري الحفظ...';
+    let failMsg = null;
 
     try {
       const ids = Array.from(selectedIds);
@@ -308,22 +347,29 @@
       }
 
       if (result.success) {
-        btn.textContent = '✅ تم الحفظ';
         await loadDashboard();
+        selectedIds = new Set(); // التصفير فقط عند النجاح المؤكد من الخادم
         renderActionButtons();
         renderStudents();
+        updateConfirmBar();
+        btn.textContent = '✅ تم الحفظ';
+        setTimeout(() => { btn.textContent = 'تأكيد التحديد'; }, 1800);
       } else {
-        btn.textContent = result.error || 'تعذر الحفظ';
+        failMsg = result.error || 'تعذر الحفظ';
       }
     } catch (_) {
-      btn.textContent = 'فشل الاتصال';
+      failMsg = 'فشل الاتصال';
     }
 
-    setTimeout(() => {
-      selectedIds = new Set();
-      updateConfirmBar();
-      btn.textContent = 'تأكيد التحديد';
-    }, 1800);
+    // عند الفشل: التحديد يبقى كما هو بدون أي تغيير، فقط نعرض السبب لحظيًا
+    // ثم نرجع الزر قابل للضغط مرة ثانية بنفس التحديد الحالي للمحاولة من جديد
+    if (failMsg) {
+      btn.textContent = failMsg;
+      setTimeout(() => {
+        btn.disabled = selectedIds.size === 0;
+        btn.textContent = 'تأكيد التحديد';
+      }, 2000);
+    }
   });
 
   document.querySelectorAll('.stage-tab').forEach((tab) => {
@@ -340,8 +386,13 @@
   document.getElementById('leaderboardRefreshBtn').addEventListener('click', refreshAll);
 
   async function loadDashboard() {
-    const data = await callAppsScript({ action: 'getTeacherDashboardData', stages: currentStages });
-    if (data.success) dashboardData = data;
+    try {
+      const data = await callAppsScript({ action: 'getTeacherDashboardData', stages: currentStages });
+      if (data.success) dashboardData = data;
+    } catch (_) {
+      // تجاهل بصمت — تبقى آخر بيانات محمّلة بنجاح ظاهرة، ويعاد المحاولة
+      // تلقائيًا بالتحديث الدوري التالي (كل دقيقة) بدون مقاطعة الشاشة
+    }
   }
 
   // يعيد تحميل وعرض كل شي بنفس المرحلة المحددة حاليًا — تستخدمها كل من
@@ -350,7 +401,10 @@
     selectedIds = new Set();
     updateConfirmBar();
     await loadDashboard();
-    if (!dashboardData) return;
+    if (!dashboardData) {
+      document.getElementById('studentsGrid').innerHTML = '<p class="empty-hint">تعذر الاتصال بالخادم، تحقق من الإنترنت — ستتم إعادة المحاولة تلقائيًا</p>';
+      return;
+    }
     renderLeaderboard(dashboardData.top10);
     renderActionButtons();
     renderStudents();
