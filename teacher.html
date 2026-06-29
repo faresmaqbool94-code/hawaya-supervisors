@@ -118,8 +118,7 @@
 </div>
 
 <div class="stage-tabs" id="stageTabs">
-  <button type="button" class="stage-tab active" data-stages="all">الكل</button>
-  <button type="button" class="stage-tab" data-stages="أول ابتدائي">أول ابتدائي</button>
+  <button type="button" class="stage-tab active" data-stages="أول ابتدائي">أول ابتدائي</button>
   <button type="button" class="stage-tab" data-stages="ثاني وثالث">ثاني وثالث ابتدائي</button>
   <button type="button" class="stage-tab" data-stages="رابع ابتدائي">رابع ابتدائي</button>
 </div>
@@ -135,6 +134,7 @@
   <div class="leaderboard-panel">
     <div class="leaderboard-title">⭐ الخمسة الأبطال</div>
     <div id="leaderboardStrip"></div>
+    <button type="button" id="leaderboardRefreshBtn" class="stage-tab" style="width:100%;margin-top:10px;">🔄 تحديث</button>
   </div>
 </div>
 
@@ -172,7 +172,7 @@
   let dashboardData = null;
   let activeKey = null;
   let selectedIds = new Set();
-  let currentStages = ALL_STAGES;
+  let currentStages = ['أول ابتدائي'];
 
   function updateClock() {
     document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
@@ -327,23 +327,28 @@
   });
 
   document.querySelectorAll('.stage-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', async () => {
       document.querySelectorAll('.stage-tab').forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       const key = tab.dataset.stages;
-      if (key === 'all') currentStages = ALL_STAGES;
-      else if (key === 'ثاني وثالث') currentStages = ['ثاني ابتدائي', 'ثالث ابتدائي'];
+      if (key === 'ثاني وثالث') currentStages = ['ثاني ابتدائي', 'ثالث ابتدائي'];
       else currentStages = [key];
-      renderStudents();
+      await refreshAll();
     });
   });
 
+  document.getElementById('leaderboardRefreshBtn').addEventListener('click', refreshAll);
+
   async function loadDashboard() {
-    const data = await callAppsScript({ action: 'getTeacherDashboardData', stages: ALL_STAGES });
+    const data = await callAppsScript({ action: 'getTeacherDashboardData', stages: currentStages });
     if (data.success) dashboardData = data;
   }
 
-  async function init() {
+  // يعيد تحميل وعرض كل شي بنفس المرحلة المحددة حاليًا — تستخدمها كل من
+  // تبديل التبويب وزر التحديث اليدوي
+  async function refreshAll() {
+    selectedIds = new Set();
+    updateConfirmBar();
     await loadDashboard();
     if (!dashboardData) return;
     renderLeaderboard(dashboardData.top10);
@@ -351,8 +356,12 @@
     renderStudents();
   }
 
+  async function init() {
+    await refreshAll();
+  }
+
   init();
-  setInterval(loadDashboard, 60000);
+  setInterval(refreshAll, 60000);
 </script>
 </body>
 </html>
