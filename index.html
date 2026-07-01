@@ -433,6 +433,40 @@
           </div>
         </div>
       </div>
+
+      <!-- تسجيل جماعي بدون صور -->
+      <div class="card">
+        <div class="section-title">👥 تسجيل جماعي (بدون صور)</div>
+        <div class="section-sub">الصق قائمة أسماء جاهزة، اسم بكل سطر، لتسجيلهم دفعة واحدة بنفس مرحلة دراسية واحدة — يولّد لكل طالب رقمه وكلمة سره تلقائيًا، بدون كاميرا أو بطاقة</div>
+        <form id="bulkRegisterForm">
+          <label>
+            المرحلة الدراسية (لكل الأسماء بالقائمة)
+            <select id="bulkRegisterStage" required>
+              <option value="" disabled selected>اختر المرحلة</option>
+              <optgroup label="ابتدائي">
+                <option>أول ابتدائي</option><option>ثاني ابتدائي</option>
+                <option>ثالث ابتدائي</option><option>رابع ابتدائي</option>
+                <option>خامس ابتدائي</option><option>سادس ابتدائي</option>
+              </optgroup>
+              <optgroup label="متوسط">
+                <option>أول متوسط</option><option>ثاني متوسط</option><option>ثالث متوسط</option>
+              </optgroup>
+              <optgroup label="ثانوي">
+                <option>أول ثانوي</option><option>ثاني ثانوي</option><option>ثالث ثانوي</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>
+            قائمة الأسماء (اسم بكل سطر)
+            <textarea id="bulkRegisterNames" rows="8" placeholder="محمد أحمد العتيبي
+خالد سعد القحطاني
+عبدالله ناصر الدوسري" style="width:100%;margin-top:8px;padding:13px 14px;border-radius:14px;border:2px solid #E7E2F2;background:#FBFAFD;font-family:'Almarai', sans-serif;font-size:1rem;color:var(--text);outline:none;resize:vertical;"></textarea>
+          </label>
+          <button type="submit" id="bulkRegisterSubmitBtn">📋 تسجيل الكل</button>
+          <p class="error" id="bulkRegisterError"></p>
+        </form>
+        <div id="bulkRegisterResults" style="margin-top:16px;"></div>
+      </div>
     </div>
 
     <!-- ============ 1) الإدارة ============ -->
@@ -575,6 +609,10 @@
             <div style="flex:1;min-width:0;">
               <div style="font-weight:800;color:var(--indigo);font-size:1.05rem;" id="detailName"></div>
               <div style="font-size:.82rem;color:var(--text-muted);" id="detailStage"></div>
+              <div style="display:flex;gap:14px;margin-top:5px;">
+                <span style="font-size:.75rem;font-weight:700;color:var(--text-muted);">ID: <b style="color:var(--indigo);" id="detailId"></b></span>
+                <span style="font-size:.75rem;font-weight:700;color:var(--text-muted);">PIN: <b style="color:var(--indigo);" id="detailPin"></b></span>
+              </div>
             </div>
             <button type="button" id="editStudentBtn" class="icon-btn">✏️</button>
           </div>
@@ -1319,6 +1357,83 @@
   });
 
   /* ====================================================================
+     تسجيل جماعي بدون صور — قائمة أسماء جاهزة بمرحلة واحدة، يولّد لكل
+     طالب ID ورقم سري تلقائيًا بدون كاميرا أو بطاقة
+     ==================================================================== */
+  document.getElementById('bulkRegisterForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const stage = document.getElementById('bulkRegisterStage').value;
+    const namesRaw = document.getElementById('bulkRegisterNames').value;
+    const btn = document.getElementById('bulkRegisterSubmitBtn');
+    const errEl = document.getElementById('bulkRegisterError');
+    errEl.textContent = '';
+
+    const names = namesRaw.split('\n').map((n) => n.trim()).filter((n) => n.length > 0);
+    if (!stage) { errEl.textContent = 'اختر المرحلة الدراسية'; return; }
+    if (!names.length) { errEl.textContent = 'أدخل اسم طالب واحد على الأقل'; return; }
+
+    btn.disabled = true; btn.textContent = 'جاري التسجيل...';
+    try {
+      const result = await callAppsScript({ action: 'bulkRegisterStudents', names: names, stage: stage });
+      if (!result.success) { errEl.textContent = result.error || 'تعذر التسجيل الجماعي'; return; }
+
+      renderBulkRegisterResults(result.results, stage);
+      document.getElementById('bulkRegisterNames').value = '';
+
+      // تحديث ذاكرة قائمة الطلاب لو محمّلة بالفعل، عشان الطلاب الجدد يطلعو فورًا برصيد الطلاب
+      if (allStudentsCache) {
+        result.results.forEach((r) => {
+          if (r.success) allStudentsCache.push({ id: r.id, name: r.name, stage: stage, balance: 0, imageUrl: '' });
+        });
+      }
+    } catch (err) {
+      errEl.textContent = 'حدث خطأ في الاتصال';
+    } finally {
+      btn.disabled = false; btn.textContent = '📋 تسجيل الكل';
+    }
+  });
+
+  function renderBulkRegisterResults(results, stage) {
+    const wrap = document.getElementById('bulkRegisterResults');
+    const successList = results.filter((r) => r.success);
+    const failedList = results.filter((r) => !r.success);
+
+    let html = '<div class="card" style="background:#EAF7EF;border:2px solid #BEE6CC;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
+    html += '<span style="font-weight:800;color:#27500A;">✅ تم تسجيل ' + successList.length + ' طالب (' + stage + ')</span>';
+    html += '<button type="button" id="copyBulkResultsBtn" class="btn-secondary" style="width:auto;margin:0;padding:8px 16px;font-size:.8rem;">📋 نسخ القائمة</button>';
+    html += '</div>';
+    html += successList.map((r) => `
+      <div class="list-item" style="background:#fff;">
+        <div class="list-item-thumb">🧒</div>
+        <div class="list-item-body">
+          <div class="list-item-title">${r.name}</div>
+          <div class="list-item-sub">ID: ${r.id} · PIN: ${r.password}</div>
+        </div>
+      </div>
+    `).join('');
+
+    if (failedList.length) {
+      html += '<div style="font-weight:800;color:var(--error);margin:14px 0 8px;">⚠️ تعذر تسجيل ' + failedList.length + '</div>';
+      html += failedList.map((r) => '<p class="list-empty">' + r.name + ' — ' + (r.error || 'خطأ') + '</p>').join('');
+    }
+    html += '</div>';
+    wrap.innerHTML = html;
+
+    document.getElementById('copyBulkResultsBtn').addEventListener('click', () => {
+      const text = successList.map((r) => r.name + ' - ID: ' + r.id + ' - PIN: ' + r.password).join('\n');
+      const copyBtn = document.getElementById('copyBulkResultsBtn');
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = '✅ تم النسخ';
+        setTimeout(() => { copyBtn.textContent = '📋 نسخ القائمة'; }, 2000);
+      }).catch(() => {
+        copyBtn.textContent = 'تعذر النسخ';
+        setTimeout(() => { copyBtn.textContent = '📋 نسخ القائمة'; }, 2000);
+      });
+    });
+  }
+
+  /* ====================================================================
      تبويب "الإعلانات" — محتوى موحّد (إعلان بصورة اختيارية / نصيحة بدون صورة)
      ==================================================================== */
   let announcementsLoaded = false;
@@ -1860,6 +1975,8 @@
 
     document.getElementById('detailName').textContent = student.name;
     document.getElementById('detailStage').textContent = student.stage;
+    document.getElementById('detailId').textContent = student.id;
+    document.getElementById('detailPin').textContent = student.password || '—';
     document.getElementById('detailBalance').textContent = student.balance + ' نقطة';
 
     const avatar = document.getElementById('detailAvatar');
