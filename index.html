@@ -276,18 +276,19 @@
      آخر الطلاب بالقائمة ما ينغطّوا بالشريط ويقدر يكمل سكرول لهم */
   #balanceListView.bulk-bar-open #balanceStudentsList{padding-bottom:230px;}
 
-  /* مربع تحديد الكل الحقيقي + زر فلتر الحاضرين فقط */
+  /* مربع تحديد الكل الحقيقي + فلتر الحضور الثلاثي */
   .balance-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
   .select-all-label{
     display:flex;align-items:center;gap:6px;background:#F3F0FA;color:var(--indigo);
     border-radius:999px;padding:8px 14px;font-size:.84rem;font-weight:800;cursor:pointer;margin:0;
   }
   .select-all-label input{margin:0;}
-  .present-filter-btn{
-    width:auto;padding:8px 14px;font-size:.84rem;border-radius:999px;
+  .attendance-filter-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .att-filter-btn{
+    width:auto;padding:8px 13px;font-size:.8rem;border-radius:999px;
     background:#F3F0FA;color:var(--indigo);box-shadow:none;font-weight:800;
   }
-  .present-filter-btn.active{background:linear-gradient(95deg, var(--blue), var(--violet));color:#fff;}
+  .att-filter-btn.active{background:linear-gradient(95deg, var(--blue), var(--violet));color:#fff;}
 
   @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
@@ -588,9 +589,13 @@
           <div class="balance-toolbar hidden" id="balanceToolbar">
             <label class="select-all-label">
               <input type="checkbox" id="selectAllCheckbox">
-              <span>الكل</span>
+              <span>تحديد الكل</span>
             </label>
-            <button type="button" id="presentOnlyBtn" class="present-filter-btn">✅ الحاضرين فقط</button>
+            <div class="attendance-filter-row">
+              <button type="button" class="att-filter-btn active" data-filter="all" id="filterAllBtn">الكل</button>
+              <button type="button" class="att-filter-btn" data-filter="present" id="filterPresentBtn">✅ الحاضرين</button>
+              <button type="button" class="att-filter-btn" data-filter="absent" id="filterAbsentBtn">غير الحاضرين</button>
+            </div>
           </div>
 
           <div id="balanceStudentsList" style="margin-top:6px;">
@@ -1834,8 +1839,8 @@
 
   let pendingAmount = null;
   let bulkPendingAmount = null;
-  let presentOnlyActive = false;
-  let todayAttendeeIds = null; // null = لسا ما تحمّلت، تُحمّل أول ما يُفعَّل الفلتر
+  let attendanceFilter = 'all'; // 'all' | 'present' | 'absent'
+  let todayAttendeeIds = null; // null = لسا ما تحمّلت، تُحمّل أول ما يُفعَّل فلتر حضور
 
   async function loadAllStudentsCache() {
     const listEl = document.getElementById('balanceStudentsList');
@@ -1864,7 +1869,7 @@
 
     if (!allStudentsCache) return; // لسا التحميل الأول ما خلص
 
-    if (!stage && !query && !presentOnlyActive) {
+    if (!stage && !query && attendanceFilter === 'all') {
       listEl.innerHTML = '<p class="list-empty">اختر مرحلة أو ابحث بالاسم/الرقم لعرض الطلاب</p>';
       allLoadedStudents = [];
       document.getElementById('balanceToolbar').classList.add('hidden');
@@ -1873,16 +1878,37 @@
 
     document.getElementById('balanceToolbar').classList.remove('hidden');
 
-    let filtered = allStudentsCache.filter((s) => studentMatchesStageFilter(s, stage));
+    // القاعدة المشتركة: المرحلة + البحث (قبل تطبيق فلتر الحضور)
+    let base = allStudentsCache.filter((s) => studentMatchesStageFilter(s, stage));
     if (query) {
-      filtered = filtered.filter((s) =>
+      base = base.filter((s) =>
         s.id.toLowerCase().indexOf(query) !== -1 || (s.name || '').toLowerCase().indexOf(query) !== -1
       );
     }
-    if (presentOnlyActive && todayAttendeeIds) {
-      filtered = filtered.filter((s) => todayAttendeeIds.has(s.id));
+
+    // تحديث العدادات بأزرار الفلتر الثلاثة (حسب المرحلة والبحث الحاليين)
+    updateAttendanceFilterCounts(base);
+
+    let filtered = base;
+    if (attendanceFilter === 'present' && todayAttendeeIds) {
+      filtered = base.filter((s) => todayAttendeeIds.has(s.id));
+    } else if (attendanceFilter === 'absent' && todayAttendeeIds) {
+      filtered = base.filter((s) => !todayAttendeeIds.has(s.id));
     }
     renderBalanceStudentsList(filtered);
+  }
+
+  // يحدث الأرقام بجانب كل زر فلتر: الكل (N) / الحاضرين (N) / غير الحاضرين (N)
+  function updateAttendanceFilterCounts(baseList) {
+    const totalCount = baseList.length;
+    let presentCount = '؟', absentCount = '؟';
+    if (todayAttendeeIds) {
+      presentCount = baseList.filter((s) => todayAttendeeIds.has(s.id)).length;
+      absentCount = totalCount - presentCount;
+    }
+    document.getElementById('filterAllBtn').textContent = 'الكل (' + totalCount + ')';
+    document.getElementById('filterPresentBtn').textContent = '✅ الحاضرين (' + presentCount + ')';
+    document.getElementById('filterAbsentBtn').textContent = 'غير الحاضرين (' + absentCount + ')';
   }
 
   // ===== مربع تحديد الكل (checkbox حقيقي، يتزامن بالاتجاهين مع تحديد الأفراد) =====
@@ -1901,27 +1927,29 @@
     updateBulkBar();
   });
 
-  // ===== فلتر "الحاضرين فقط" (حضور صباحي أو مسائي بنفس اليوم) =====
-  const presentOnlyBtn = document.getElementById('presentOnlyBtn');
-  presentOnlyBtn.addEventListener('click', async () => {
-    presentOnlyActive = !presentOnlyActive;
-    presentOnlyBtn.classList.toggle('active', presentOnlyActive);
-
-    if (presentOnlyActive && !todayAttendeeIds) {
-      presentOnlyBtn.disabled = true;
-      presentOnlyBtn.textContent = '⏳ جاري التحميل...';
-      try {
-        const data = await callAppsScript({ action: 'getTodayAttendees' });
-        todayAttendeeIds = new Set(data.success ? data.ids : []);
-        presentOnlyBtn.textContent = '✅ الحاضرين فقط';
-      } catch (_) {
-        todayAttendeeIds = new Set();
-        presentOnlyBtn.textContent = '⚠️ تعذر التحميل';
-        setTimeout(() => { presentOnlyBtn.textContent = '✅ الحاضرين فقط'; }, 2200);
-      }
-      presentOnlyBtn.disabled = false;
+  // ===== الفلتر الثلاثي: الكل / الحاضرين / غير الحاضرين =====
+  async function ensureTodayAttendeesLoaded() {
+    if (todayAttendeeIds) return;
+    try {
+      const data = await callAppsScript({ action: 'getTodayAttendees' });
+      todayAttendeeIds = new Set(data.success ? data.ids : []);
+    } catch (_) {
+      todayAttendeeIds = new Set();
     }
-    filterAndRenderBalanceStudents();
+  }
+
+  document.querySelectorAll('.att-filter-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.att-filter-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      attendanceFilter = btn.dataset.filter;
+
+      // فلترا الحضور يحتاجان قائمة حاضري اليوم — تُحمّل مرة واحدة فقط
+      if (attendanceFilter !== 'all') {
+        await ensureTodayAttendeesLoaded();
+      }
+      filterAndRenderBalanceStudents();
+    });
   });
 
   function renderBalanceStudentsList(students) {
