@@ -2106,7 +2106,7 @@
     btn.disabled = true; btn.textContent = 'جاري التسجيل...'; msgEl.textContent = ''; msgEl.style.color = 'var(--success)';
 
     try {
-      const data = await callAppsScript({ action: 'markAttendance', rawScan: selectedStudentId, supervisorName: currentSupervisorName });
+      const data = await callAppsScript({ action: 'markAttendance', rawScan: selectedStudentId, supervisorName: currentSupervisorName, source: 'supervisor' });
       if (data.success) {
         msgEl.style.color = 'var(--success)';
         msgEl.textContent = 'تم تسجيل حضور البرنامج ال' + data.session + (data.tier === 'مبكر' ? ' (مبكر ⭐)' : ' (عادي)') + ' — +' + data.pointsAdded + ' دينار';
@@ -2315,7 +2315,7 @@
     let resultMsg;
     try {
       const ids = Array.from(selectedBulkIds);
-      const result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids, supervisorName: currentSupervisorName });
+      const result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids, supervisorName: currentSupervisorName, source: 'supervisor' });
       if (!result.success) {
         resultMsg = result.error || 'تعذر تسجيل الحضور';
       } else {
