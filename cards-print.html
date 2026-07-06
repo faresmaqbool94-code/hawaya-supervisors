@@ -41,9 +41,11 @@
     padding:0 .5cm;
     gap:.4cm;
     page-break-inside:avoid;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
   }
-  .info{flex:1;text-align:right;min-width:0;}
-  .logo{height:1.2cm;width:auto;display:block;margin-bottom:.15cm;border-radius:6px;margin-left:auto;}
+  .info{flex:1;text-align:right;min-width:0;align-self:stretch;display:flex;flex-direction:column;padding-top:.35cm;}
+  .logo{height:1.2cm;width:auto;display:block;margin-bottom:.3cm;border-radius:6px;margin-left:auto;}
   .name{font-size:.68rem;font-weight:800;color:#fff;margin-bottom:.08cm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .stage{font-size:.58rem;font-weight:800;color:#1F1738;margin-bottom:.2cm;}
   .id-row{display:flex;gap:.35cm;justify-content:flex-start;align-items:baseline;}
@@ -59,7 +61,7 @@
   .qr-wrap canvas, .qr-wrap img{width:3.15cm !important;height:3.15cm !important;}
 
   @media print{
-    body{background:#fff;padding:0;}
+    body{background:#fff;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .top-actions{display:none;}
     .stage-title{page-break-before:always;}
     .stage-title:first-of-type{page-break-before:auto;}
