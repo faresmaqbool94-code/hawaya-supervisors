@@ -341,7 +341,7 @@
       const ids = Array.from(selectedIds);
       let result;
       if (activeKey === 'حاضر') {
-        result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids });
+        result = await callAppsScript({ action: 'bulkMarkAttendance', ids: ids, supervisorName: 'المعلم', source: 'teacher' });
       } else {
         result = await callAppsScript({ action: 'teacherMarkAchievement', achievementKey: activeKey, studentIds: ids });
       }
