@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بطاقات الطلاب للطباعة</title>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{ --indigo:#352868; --violet:#7C5BA6; --pink:#F178A8; }
+  *{box-sizing:border-box;}
+  body{font-family:'Almarai', Tahoma, sans-serif;margin:0;padding:24px;direction:rtl;color:#2B2640;background:#F6F4FB;}
+  .hidden{display:none !important;}
+
+  #gateView{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+  .gate-card{background:#fff;border-radius:22px;padding:30px 26px;max-width:380px;width:100%;box-shadow:0 18px 50px -12px rgba(53,40,104,.22);}
+  .gate-card h1{font-size:1.25rem;color:var(--indigo);text-align:center;margin:0 0 18px;}
+  .gate-card label{display:block;font-size:.88rem;font-weight:700;color:var(--indigo);margin-bottom:16px;}
+  .gate-card select, .gate-card input{width:100%;margin-top:8px;padding:13px 14px;border-radius:14px;border:2px solid #E7E2F2;background:#FBFAFD;font-family:'Almarai', sans-serif;font-size:1rem;}
+  .gate-card button{width:100%;padding:14px;border:none;border-radius:999px;background:var(--indigo);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;}
+  .gate-error{color:#D1485B;font-size:.85rem;text-align:center;min-height:1.2em;margin-top:12px;font-weight:700;}
+
+  .top-actions{text-align:center;margin-bottom:24px;}
+  .print-btn{padding:14px 30px;border:none;border-radius:999px;background:var(--indigo);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;}
+
+  .stage-title{
+    font-size:1.2rem;font-weight:800;color:var(--indigo);margin:24px auto 12px;
+    max-width:19cm;padding-bottom:6px;border-bottom:2px solid var(--violet);
+  }
+
+  .cards-grid{
+    display:flex;flex-wrap:wrap;gap:.4cm;max-width:19cm;margin:0 auto;
+  }
+
+  /* البطاقة — 9×6 سم بالضبط */
+  .card{
+    width:9cm;height:6cm;
+    border-radius:14px;overflow:hidden;position:relative;
+    background:linear-gradient(135deg,#1A1430 0%,#352868 40%,#7C5BA6 75%,#F178A8 110%);
+    display:flex;align-items:center;
+    padding:0 .5cm;
+    gap:.4cm;
+    page-break-inside:avoid;
+  }
+  .info{flex:1;text-align:right;min-width:0;}
+  .logo{height:1.2cm;width:auto;display:block;margin-bottom:.15cm;border-radius:6px;margin-left:auto;}
+  .name{font-size:.68rem;font-weight:800;color:#fff;margin-bottom:.08cm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stage{font-size:.58rem;font-weight:800;color:#1F1738;margin-bottom:.2cm;}
+  .id-row{display:flex;gap:.35cm;justify-content:flex-start;align-items:baseline;}
+  .id-item{display:flex;align-items:baseline;gap:3px;}
+  .id-label{font-size:.42rem;color:#1F1738;font-weight:700;}
+  .id-value{font-size:.62rem;font-weight:800;color:#1F1738;}
+
+  .qr-wrap{
+    flex-shrink:0;background:#fff;border-radius:8px;
+    padding:.12cm;width:3.4cm;height:3.4cm;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .qr-wrap canvas, .qr-wrap img{width:3.15cm !important;height:3.15cm !important;}
+
+  @media print{
+    body{background:#fff;padding:0;}
+    .top-actions{display:none;}
+    .stage-title{page-break-before:always;}
+    .stage-title:first-of-type{page-break-before:auto;}
+  }
+</style>
+</head>
+<body>
+
+<div id="gateView">
+  <div class="gate-card">
+    <h1>بطاقات الطلاب للطباعة 🔒</h1>
+    <form id="gateForm">
+      <label>اسمك
+        <select id="gateNameSelect" required>
+          <option value="" disabled selected>اختر اسمك</option>
+          <option>فارس مقبول</option>
+          <option>ناصر الصياح</option>
+          <option>عبدالرحمن بامشموس</option>
+          <option>بشارة الزبير</option>
+          <option>عبدالعزيز الجامع</option>
+          <option>فهد الخضير</option>
+          <option>أسامة نور</option>
+          <option>هادي باشا</option>
+          <option>معتصم عماد</option>
+        </select>
+      </label>
+      <label>الرقم السري<input type="text" id="gatePinInput" inputmode="numeric" maxlength="4" placeholder="٤ أرقام" required></label>
+      <button type="submit">عرض البطاقات</button>
+      <p class="gate-error" id="gateError"></p>
+    </form>
+  </div>
+</div>
+
+<div id="reportView" class="hidden">
+  <div class="top-actions">
+    <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+  </div>
+  <div id="cardsContainer">
+    <p style="text-align:center;color:#79738F;">جاري تحميل البطاقات...</p>
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVV1SDLMhie0fMAf2qfu-1wB5AmSvRl3u-T7JDm2wUzaut6I8Lo3NTMpd9P9wE706blA/exec';
+  const STUDENT_APP_BASE_URL = 'https://faresmaqbool94-code.github.io/hawaya-student/';
+  const LOGO_SRC = 'logo.png';
+
+  const SUPERVISORS = {
+    'فارس مقبول': '7142', 'ناصر الصياح': '5839', 'عبدالرحمن بامشموس': '2967',
+    'بشارة الزبير': '4051', 'عبدالعزيز الجامع': '8374', 'فهد الخضير': '1592',
+    'أسامة نور': '6203', 'هادي باشا': '9486', 'معتصم عماد': '3718'
+  };
+  const SUPERVISOR_SESSION_KEY = 'hawaya_supervisor_session';
+
+  function showReport() {
+    document.getElementById('gateView').classList.add('hidden');
+    document.getElementById('reportView').classList.remove('hidden');
+    loadCards();
+  }
+
+  document.getElementById('gateForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('gateNameSelect').value;
+    const pin = document.getElementById('gatePinInput').value.trim();
+    const errEl = document.getElementById('gateError');
+    errEl.textContent = '';
+
+    if (!name || !pin) { errEl.textContent = 'اختر اسمك وأدخل رقمك السري'; return; }
+    if (SUPERVISORS[name] !== pin) { errEl.textContent = 'الرقم السري غير صحيح'; return; }
+
+    localStorage.setItem(SUPERVISOR_SESSION_KEY, name);
+    showReport();
+  });
+
+  (function init() {
+    const saved = localStorage.getItem(SUPERVISOR_SESSION_KEY);
+    if (saved && SUPERVISORS[saved]) showReport();
+  })();
+
+  async function callAppsScript(payload) {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function loadCards() {
+    const container = document.getElementById('cardsContainer');
+    try {
+      const data = await callAppsScript({ action: 'getAllStudentsForBarcodeReport' });
+      if (!data.success || !data.students.length) {
+        container.innerHTML = '<p style="text-align:center;color:#79738F;">لا يوجد طلاب مسجّلين بعد</p>';
+        return;
+      }
+
+      // تجميع حسب المرحلة (الترتيب جاهز من الخادم)
+      const groups = [];
+      let currentStage = null, currentGroup = null;
+      data.students.forEach((s) => {
+        if (s.stage !== currentStage) {
+          currentStage = s.stage;
+          currentGroup = { stage: s.stage, students: [] };
+          groups.push(currentGroup);
+        }
+        currentGroup.students.push(s);
+      });
+
+      container.innerHTML = groups.map((g, gi) => `
+        <div class="stage-title">${g.stage}</div>
+        <div class="cards-grid">
+          ${g.students.map((s, si) => `
+            <div class="card">
+              <div class="info">
+                <img class="logo" src="${LOGO_SRC}" alt="هواية" onerror="this.style.display='none'">
+                <div class="name">${s.name}</div>
+                <div class="stage">${s.stage}</div>
+                <div class="id-row">
+                  <div class="id-item">
+                    <span class="id-value">${s.id}</span>
+                    <span class="id-label">ID</span>
+                  </div>
+                  <div class="id-item">
+                    <span class="id-value">${s.password}</span>
+                    <span class="id-label">PIN</span>
+                  </div>
+                </div>
+              </div>
+              <div class="qr-wrap" id="qr-${gi}-${si}"></div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+
+      // توليد الباركودات بعد إدراج البطاقات
+      groups.forEach((g, gi) => {
+        g.students.forEach((s, si) => {
+          const loginLink = STUDENT_APP_BASE_URL + '?id=' + s.id + '&pw=' + s.password;
+          new QRCode(document.getElementById('qr-' + gi + '-' + si), {
+            text: loginLink, width: 120, height: 120,
+            colorDark: '#15101F', colorLight: '#ffffff'
+          });
+        });
+      });
+    } catch (err) {
+      container.innerHTML = '<p style="text-align:center;color:#D1485B;">تعذر تحميل البطاقات، تحقق من الاتصال</p>';
+    }
+  }
+</script>
+</body>
+</html>
