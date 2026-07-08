@@ -23,16 +23,18 @@
   .top-actions{text-align:center;margin-bottom:24px;}
   .print-btn{padding:14px 30px;border:none;border-radius:999px;background:var(--indigo);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;}
 
+  /* ضبط العرض الأقصى ليتناسب مع ورق Super B بعرض 33سم مخصوماً منه الهوامش */
   .stage-title{
     font-size:1.2rem;font-weight:800;color:var(--indigo);margin:24px auto 12px;
-    max-width:19cm;padding-bottom:6px;border-bottom:2px solid var(--violet);
+    max-width:28cm;padding-bottom:6px;border-bottom:2px solid var(--violet);
   }
 
+  /* توزيع الأعمدة الثلاثة بشكل مرن ومتناسق بمجموع عرض 28سم تقريباً شامل الفراغات */
   .cards-grid{
-    display:flex;flex-wrap:wrap;gap:.4cm;max-width:19cm;margin:0 auto;
+    display:flex;flex-wrap:wrap;gap:.4cm;max-width:28cm;margin:0 auto;
   }
 
-  /* تعديل مقاس البطاقة — 9×5 سم بالضبط */
+  /* الحفاظ على المقاس الدقيق لكل بطاقة 9×5 سم */
   .card{
     width:9cm;height:5cm;
     border-radius:14px;overflow:hidden;position:relative;
@@ -54,7 +56,7 @@
   .id-label{font-size:.50rem;color:#1F1738;font-weight:700;}
   .id-value{font-size:.72rem;font-weight:800;color:#1F1738;}
 
-  /* الحفاظ على نفس مقاس ومساحة الباركود */
+  /* الحفاظ على أبعاد الباركود الثابتة لسهولة القراءة والمسح */
   .qr-wrap{
     flex-shrink:0;background:#fff;border-radius:8px;
     padding:.12cm;width:3.4cm;height:3.4cm;
@@ -67,6 +69,12 @@
     .top-actions{display:none;}
     .stage-title{page-break-before:always;}
     .stage-title:first-of-type{page-break-before:auto;}
+    
+    /* إعدادات الطباعة المخصصة لورق Super B (A3+) الرأسي لاستيعاب الـ 24 بطاقة بشكل مثالي */
+    @page {
+      size: 330mm 483mm; /* أبعاد ورق Super B */
+      margin: 1.5cm 2.2cm; /* هوامش متوازنة لتوسيط شبكة البطاقات */
+    }
   }
 </style>
 </head>
@@ -195,9 +203,9 @@
               </div>
               <div class="qr-wrap" id="qr-${gi}-${si}"></div>
             </div>
-          `).join('')}
+           `).join('')}
         </div>
-      `).join('');
+       `).join('');
 
       groups.forEach((g, gi) => {
         g.students.forEach((s, si) => {
