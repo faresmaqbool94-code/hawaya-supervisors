@@ -32,31 +32,29 @@
     display:flex;flex-wrap:wrap;gap:.4cm;max-width:19cm;margin:0 auto;
   }
 
-  /* البطاقة — 9×6 سم بالضبط */
+  /* تعديل مقاس البطاقة — 9×5 سم بالضبط */
   .card{
-    width:9cm;height:6cm;
+    width:9cm;height:5cm;
     border-radius:14px;overflow:hidden;position:relative;
     background:linear-gradient(135deg,#1A1430 0%,#352868 40%,#7C5BA6 75%,#F178A8 110%);
     display:flex;align-items:center;
-    padding:0 .5cm;
+    padding:0 .4cm;
     gap:.4cm;
     page-break-inside:avoid;
     -webkit-print-color-adjust:exact;
     print-color-adjust:exact;
   }
-  .info{flex:1;text-align:right;min-width:0;align-self:stretch;display:flex;flex-direction:column;padding-top:.35cm;}
-  .logo{height:1.2cm;width:auto;display:block;margin-bottom:.3cm;border-radius:6px;margin-left:auto;}
-  .name{font-size:.68rem;font-weight:800;color:#fff;margin-bottom:.15cm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .info{flex:1;text-align:right;min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding:.15cm 0;}
+  .logo{height:1.1cm;width:auto;display:block;margin-bottom:.15cm;border-radius:6px;margin-left:auto;}
+  .name{font-size:.68rem;font-weight:800;color:#fff;margin-bottom:.12cm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stage{font-size:.68rem;font-weight:800;color:#1F1738;margin-bottom:.25cm;}
   
-  /* تعديل خط وتوزيع المرحلة */
-  .stage{font-size:.68rem;font-weight:800;color:#1F1738;margin-bottom:.35cm;}
-  
-  /* تعديل خط ومساحة الأرقام السفلية */
   .id-row{display:flex;gap:.45cm;justify-content:flex-start;align-items:baseline;}
   .id-item{display:flex;align-items:baseline;gap:4px;}
   .id-label{font-size:.50rem;color:#1F1738;font-weight:700;}
   .id-value{font-size:.72rem;font-weight:800;color:#1F1738;}
 
+  /* الحفاظ على نفس مقاس ومساحة الباركود */
   .qr-wrap{
     flex-shrink:0;background:#fff;border-radius:8px;
     padding:.12cm;width:3.4cm;height:3.4cm;
@@ -211,7 +209,7 @@
         });
       });
     } catch (err) {
-      container.innerHTML = '<p style="text-align:center;color:#D1485B;">تعذر تحميل البطاقات, تحقق من الاتصال</p>';
+      container.innerHTML = '<p style="text-align:center;color:#D1485B;">تعذر تحميل البطاقات، تحقق من الاتصال</p>';
     }
   }
 </script>
