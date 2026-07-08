@@ -46,12 +46,16 @@
   }
   .info{flex:1;text-align:right;min-width:0;align-self:stretch;display:flex;flex-direction:column;padding-top:.35cm;}
   .logo{height:1.2cm;width:auto;display:block;margin-bottom:.3cm;border-radius:6px;margin-left:auto;}
-  .name{font-size:.68rem;font-weight:800;color:#fff;margin-bottom:.08cm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .stage{font-size:.58rem;font-weight:800;color:#1F1738;margin-bottom:.2cm;}
-  .id-row{display:flex;gap:.35cm;justify-content:flex-start;align-items:baseline;}
-  .id-item{display:flex;align-items:baseline;gap:3px;}
-  .id-label{font-size:.42rem;color:#1F1738;font-weight:700;}
-  .id-value{font-size:.62rem;font-weight:800;color:#1F1738;}
+  .name{font-size:.68rem;font-weight:800;color:#fff;margin-bottom:.15cm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  
+  /* تعديل خط وتوزيع المرحلة */
+  .stage{font-size:.68rem;font-weight:800;color:#1F1738;margin-bottom:.35cm;}
+  
+  /* تعديل خط ومساحة الأرقام السفلية */
+  .id-row{display:flex;gap:.45cm;justify-content:flex-start;align-items:baseline;}
+  .id-item{display:flex;align-items:baseline;gap:4px;}
+  .id-label{font-size:.50rem;color:#1F1738;font-weight:700;}
+  .id-value{font-size:.72rem;font-weight:800;color:#1F1738;}
 
   .qr-wrap{
     flex-shrink:0;background:#fff;border-radius:8px;
@@ -160,7 +164,6 @@
         return;
       }
 
-      // تجميع حسب المرحلة (الترتيب جاهز من الخادم)
       const groups = [];
       let currentStage = null, currentGroup = null;
       data.students.forEach((s) => {
@@ -198,7 +201,6 @@
         </div>
       `).join('');
 
-      // توليد الباركودات بعد إدراج البطاقات
       groups.forEach((g, gi) => {
         g.students.forEach((s, si) => {
           const loginLink = STUDENT_APP_BASE_URL + '?id=' + s.id + '&pw=' + s.password;
@@ -209,7 +211,7 @@
         });
       });
     } catch (err) {
-      container.innerHTML = '<p style="text-align:center;color:#D1485B;">تعذر تحميل البطاقات، تحقق من الاتصال</p>';
+      container.innerHTML = '<p style="text-align:center;color:#D1485B;">تعذر تحميل البطاقات, تحقق من الاتصال</p>';
     }
   }
 </script>
