@@ -290,6 +290,13 @@
   }
   .att-filter-btn.active{background:linear-gradient(95deg, var(--blue), var(--violet));color:#fff;}
 
+  .reward-group-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .reward-group-btn{
+    width:auto;padding:10px 16px;font-size:.86rem;border-radius:999px;
+    background:#F3F0FA;color:var(--indigo);box-shadow:none;font-weight:800;
+  }
+  .reward-group-btn.active{background:linear-gradient(95deg, var(--violet), var(--pink));color:#fff;}
+
   @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
 </head>
@@ -525,10 +532,22 @@
     <!-- ============ 2) الجوائز ============ -->
     <div class="page-panel" data-page="2">
 
+      <!-- اختيار المجموعة أولًا -->
+      <div class="card">
+        <div class="section-title">🎯 اختر المرحلة</div>
+        <div class="section-sub">الجوائز والطلبات تُدار لكل مرحلة على حدة</div>
+        <div class="reward-group-tabs">
+          <button type="button" class="reward-group-btn active" data-group="ابتدائي_صغار">أول - رابع ابتدائي</button>
+          <button type="button" class="reward-group-btn" data-group="ابتدائي_كبار">خامس - سادس</button>
+          <button type="button" class="reward-group-btn" data-group="متوسط">المتوسط</button>
+          <button type="button" class="reward-group-btn" data-group="ثانوي">الثانوي</button>
+        </div>
+      </div>
+
       <!-- إدارة الجوائز -->
       <div class="card">
-        <div class="section-title">🎁 إدارة الجوائز</div>
-        <div class="section-sub">تضاف الجوائز هنا، وتظهر مباشرة بتطبيق الطالب</div>
+        <div class="section-title">🎁 إدارة الجوائز <span id="currentGroupLabel" style="font-size:.8rem;color:var(--violet);"></span></div>
+        <div class="section-sub">تضاف الجوائز هنا، وتظهر مباشرة بتطبيق الطالب بهذي المرحلة</div>
 
         <form id="rewardForm">
           <label>اسم الجائزة<input type="text" id="rewardNameInput" placeholder="مثال: بطاقة ألعاب" required></label>
@@ -885,6 +904,7 @@
     // تحميل الجوائز وطلبات الشراء أول ما يُفتح تبويب الجوائز لأول مرة
     if (newIndex === 2 && !rewardsTabLoaded) {
       rewardsTabLoaded = true;
+      document.getElementById('currentGroupLabel').textContent = '(' + REWARD_GROUP_LABELS[currentRewardGroup] + ')';
       loadRewards();
       loadPurchaseRequests();
     }
@@ -1589,6 +1609,25 @@
      تبويب "الجوائز" — طلبات الشراء
      ==================================================================== */
   let rewardsTabLoaded = false;
+  let currentRewardGroup = 'ابتدائي_صغار'; // المجموعة المختارة بصفحة الجوائز
+  const REWARD_GROUP_LABELS = {
+    'ابتدائي_صغار': 'أول - رابع ابتدائي',
+    'ابتدائي_كبار': 'خامس - سادس',
+    'متوسط': 'المتوسط',
+    'ثانوي': 'الثانوي'
+  };
+
+  document.querySelectorAll('.reward-group-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.reward-group-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRewardGroup = btn.dataset.group;
+      document.getElementById('currentGroupLabel').textContent = '(' + REWARD_GROUP_LABELS[currentRewardGroup] + ')';
+      cancelRewardEdit();
+      loadRewards();
+      loadPurchaseRequests();
+    });
+  });
 
   function purchaseStatusBadge(status) {
     if (status === 'مقبول') return '<span style="color:var(--success);font-weight:800;">✅ مقبول</span>';
@@ -1629,7 +1668,7 @@
   async function loadPurchaseRequests() {
     document.getElementById('purchaseRequestsList').innerHTML = '<p class="list-empty">جاري التحميل...</p>';
     try {
-      const data = await callAppsScript({ action: 'getPurchaseRequests' });
+      const data = await callAppsScript({ action: 'getPurchaseRequests', group: currentRewardGroup });
       renderPurchaseRequests(data.success ? data.requests : []);
     } catch (_) {
       document.getElementById('purchaseRequestsList').innerHTML = '<p class="list-empty">تعذر تحميل الطلبات</p>';
@@ -1720,7 +1759,7 @@
   async function loadRewards() {
     document.getElementById('rewardsList').innerHTML = '<p class="list-empty">جاري التحميل...</p>';
     try {
-      const data = await callAppsScript({ action: 'getRewards' });
+      const data = await callAppsScript({ action: 'getRewards', group: currentRewardGroup });
       renderRewardsList(data.success ? data.rewards : []);
     } catch (_) {
       document.getElementById('rewardsList').innerHTML = '<p class="list-empty">تعذر تحميل الجوائز</p>';
@@ -1793,7 +1832,7 @@
           action: 'updateReward', rowIndex: editingRewardIndex, name: name, price: price, imageUrl: imageUrl
         });
       } else {
-        result = await callAppsScript({ action: 'addReward', name: name, price: price, imageUrl: imageUrl });
+        result = await callAppsScript({ action: 'addReward', name: name, price: price, imageUrl: imageUrl, group: currentRewardGroup });
       }
 
       if (!result.success) {
