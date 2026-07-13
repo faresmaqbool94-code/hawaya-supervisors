@@ -283,13 +283,6 @@
     border-radius:999px;padding:8px 14px;font-size:.84rem;font-weight:800;cursor:pointer;margin:0;
   }
   .select-all-label input{margin:0;}
-  .attendance-filter-row{display:flex;gap:6px;flex-wrap:wrap;}
-  .att-filter-btn{
-    width:auto;padding:8px 13px;font-size:.8rem;border-radius:999px;
-    background:#F3F0FA;color:var(--indigo);box-shadow:none;font-weight:800;
-  }
-  .att-filter-btn.active{background:linear-gradient(95deg, var(--blue), var(--violet));color:#fff;}
-
   .reward-group-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .reward-group-btn{
     width:auto;padding:10px 16px;font-size:.86rem;border-radius:999px;
@@ -552,6 +545,7 @@
         <form id="rewardForm">
           <label>اسم الجائزة<input type="text" id="rewardNameInput" placeholder="مثال: بطاقة ألعاب" required></label>
           <label>السعر (دينار)<input type="number" id="rewardPriceInput" placeholder="مثال: 300" required></label>
+          <label>الكمية المتاحة (اتركه فاضي = بدون حد)<input type="number" id="rewardQuantityInput" placeholder="مثال: 10" min="0"></label>
           <label>
             صورة الجائزة (اختياري)
             <div class="photo-source-buttons">
@@ -610,11 +604,12 @@
               <input type="checkbox" id="selectAllCheckbox">
               <span>تحديد الكل</span>
             </label>
-            <div class="attendance-filter-row">
-              <button type="button" class="att-filter-btn active" data-filter="all" id="filterAllBtn">الكل</button>
-              <button type="button" class="att-filter-btn" data-filter="present" id="filterPresentBtn">✅ الحاضرين</button>
-              <button type="button" class="att-filter-btn" data-filter="absent" id="filterAbsentBtn">غير الحاضرين</button>
-            </div>
+            <select id="viewFilterSelect" style="flex:1;min-width:160px;margin:0;">
+              <option value="all">الكل</option>
+              <option value="present">✅ الحاضرين</option>
+              <option value="absent">غير الحاضرين</option>
+              <option value="top">🏆 الأعلى نقاطًا</option>
+            </select>
           </div>
 
           <div id="balanceStudentsList" style="margin-top:6px;">
@@ -1679,6 +1674,7 @@
     const result = await callAppsScript({ action: action, rowIndex: rowIndex });
     if (!result.success) throw new Error(result.error || 'تعذر تنفيذ الإجراء');
     await loadPurchaseRequests();
+    if (action === 'rejectPurchaseRequest') await loadRewards(); // الكمية رجعت، حدّث القائمة
   }
 
   /* ====================================================================
@@ -1726,7 +1722,7 @@
         <div class="list-item-thumb" style="${r.imageUrl ? `background-image:url('${r.imageUrl}');background-size:cover;background-position:center;` : ''}">${r.imageUrl ? '' : '🎁'}</div>
         <div class="list-item-body">
           <div class="list-item-title">${r.name}</div>
-          <div class="list-item-sub">${r.price} دينار · ${r.available ? '<span style="color:var(--success);font-weight:800;">متوفرة</span>' : '<span style="color:var(--error);font-weight:800;">نفذت الكمية</span>'}</div>
+          <div class="list-item-sub">${r.price} دينار${r.quantity !== null && r.quantity !== undefined ? ' · باقي ' + r.quantity : ''} · ${r.available ? '<span style="color:var(--success);font-weight:800;">متوفرة</span>' : '<span style="color:var(--error);font-weight:800;">نفذت الكمية</span>'}</div>
         </div>
         <div class="list-item-actions">
           <button type="button" class="icon-btn" data-toggle-availability="${r.rowIndex}">${r.available ? '🚫' : '✅'}</button>
@@ -1773,6 +1769,7 @@
 
     document.getElementById('rewardNameInput').value = reward.name;
     document.getElementById('rewardPriceInput').value = reward.price;
+    document.getElementById('rewardQuantityInput').value = (reward.quantity !== null && reward.quantity !== undefined) ? reward.quantity : '';
     rewardImageBase64 = null;
     const wrap = document.getElementById('rewardImagePreviewWrap');
     if (reward.imageUrl) {
@@ -1803,6 +1800,7 @@
     e.preventDefault();
     const name = document.getElementById('rewardNameInput').value.trim();
     const price = document.getElementById('rewardPriceInput').value;
+    const quantity = document.getElementById('rewardQuantityInput').value;
     const btn = document.getElementById('rewardSubmitBtn');
     const errEl = document.getElementById('rewardFormError');
     errEl.textContent = '';
@@ -1829,10 +1827,10 @@
       let result;
       if (editingRewardIndex !== null) {
         result = await callAppsScript({
-          action: 'updateReward', rowIndex: editingRewardIndex, name: name, price: price, imageUrl: imageUrl
+          action: 'updateReward', rowIndex: editingRewardIndex, name: name, price: price, imageUrl: imageUrl, quantity: quantity
         });
       } else {
-        result = await callAppsScript({ action: 'addReward', name: name, price: price, imageUrl: imageUrl, group: currentRewardGroup });
+        result = await callAppsScript({ action: 'addReward', name: name, price: price, imageUrl: imageUrl, group: currentRewardGroup, quantity: quantity });
       }
 
       if (!result.success) {
@@ -1917,37 +1915,24 @@
 
     document.getElementById('balanceToolbar').classList.remove('hidden');
 
-    // القاعدة المشتركة: المرحلة + البحث (قبل تطبيق فلتر الحضور)
-    let base = allStudentsCache.filter((s) => studentMatchesStageFilter(s, stage));
+    // القاعدة المشتركة: المرحلة + البحث
+    let filtered = allStudentsCache.filter((s) => studentMatchesStageFilter(s, stage));
     if (query) {
-      base = base.filter((s) =>
+      filtered = filtered.filter((s) =>
         s.id.toLowerCase().indexOf(query) !== -1 || (s.name || '').toLowerCase().indexOf(query) !== -1
       );
     }
 
-    // تحديث العدادات بأزرار الفلتر الثلاثة (حسب المرحلة والبحث الحاليين)
-    updateAttendanceFilterCounts(base);
-
-    let filtered = base;
+    // تطبيق الفلتر/الترتيب المختار
     if (attendanceFilter === 'present' && todayAttendeeIds) {
-      filtered = base.filter((s) => todayAttendeeIds.has(s.id));
+      filtered = filtered.filter((s) => todayAttendeeIds.has(s.id));
     } else if (attendanceFilter === 'absent' && todayAttendeeIds) {
-      filtered = base.filter((s) => !todayAttendeeIds.has(s.id));
+      filtered = filtered.filter((s) => !todayAttendeeIds.has(s.id));
+    } else if (attendanceFilter === 'top') {
+      filtered = filtered.slice().sort((a, b) => b.balance - a.balance);
     }
-    renderBalanceStudentsList(filtered);
-  }
 
-  // يحدث الأرقام بجانب كل زر فلتر: الكل (N) / الحاضرين (N) / غير الحاضرين (N)
-  function updateAttendanceFilterCounts(baseList) {
-    const totalCount = baseList.length;
-    let presentCount = '؟', absentCount = '؟';
-    if (todayAttendeeIds) {
-      presentCount = baseList.filter((s) => todayAttendeeIds.has(s.id)).length;
-      absentCount = totalCount - presentCount;
-    }
-    document.getElementById('filterAllBtn').textContent = 'الكل (' + totalCount + ')';
-    document.getElementById('filterPresentBtn').textContent = '✅ الحاضرين (' + presentCount + ')';
-    document.getElementById('filterAbsentBtn').textContent = 'غير الحاضرين (' + absentCount + ')';
+    renderBalanceStudentsList(filtered);
   }
 
   // ===== مربع تحديد الكل (checkbox حقيقي، يتزامن بالاتجاهين مع تحديد الأفراد) =====
@@ -1966,7 +1951,7 @@
     updateBulkBar();
   });
 
-  // ===== الفلتر الثلاثي: الكل / الحاضرين / غير الحاضرين =====
+  // ===== القائمة المنسدلة: الكل / الحاضرين / غير الحاضرين / الأعلى نقاطًا =====
   async function ensureTodayAttendeesLoaded() {
     if (todayAttendeeIds) return;
     try {
@@ -1977,18 +1962,14 @@
     }
   }
 
-  document.querySelectorAll('.att-filter-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      document.querySelectorAll('.att-filter-btn').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      attendanceFilter = btn.dataset.filter;
+  document.getElementById('viewFilterSelect').addEventListener('change', async (e) => {
+    attendanceFilter = e.target.value;
 
-      // فلترا الحضور يحتاجان قائمة حاضري اليوم — تُحمّل مرة واحدة فقط
-      if (attendanceFilter !== 'all') {
-        await ensureTodayAttendeesLoaded();
-      }
-      filterAndRenderBalanceStudents();
-    });
+    // فلترا الحضور يحتاجان قائمة حاضري اليوم — تُحمّل مرة واحدة فقط
+    if (attendanceFilter === 'present' || attendanceFilter === 'absent') {
+      await ensureTodayAttendeesLoaded();
+    }
+    filterAndRenderBalanceStudents();
   });
 
   function renderBalanceStudentsList(students) {
